@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:api.anthropic.com)",
+      "Bash(mkdir -p /tmp/design_bundle)",
+      "Bash(tar -tzf webfetch-1779623873573-uti4h4.bin)",
+      "Read(//private/tmp/design_bundle/**)",
+      "Bash(tar -xzf \"/Users/titimayamyin/.claude/projects/-Users-titimayamyin-------/605f023a-0b0f-4db4-aad3-ca3dc3601e65/tool-results/webfetch-1779623873573-uti4h4.bin\")",
+      "Bash(npx --version)",
+      "Bash(cp __TRACKED_VAR__/styles.css __TRACKED_VAR__/styles-extra.css __TRACKED_VAR__/data.js __TRACKED_VAR__/tweaks-panel.jsx __TRACKED_VAR__/app-bundle.jsx '__TRACKED_VAR__/Stock IV.html' .)",
+      "Bash(cp -R __TRACKED_VAR__/uploads ./uploads)",
+      "Bash(cp -R __TRACKED_VAR__/screenshots ./screenshots)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(awk '{print $9, \"\\(\" $5 \"\\)\"}')",
+      "mcp__Claude_in_Chrome__find"
+    ]
+  }
+}
