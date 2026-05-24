@@ -2,37 +2,48 @@
 // This runs after app-bundle.jsx loads
 
 (function() {
+  // Clear all mock data immediately
+  window.STOCK = [];
+  window.MOVEMENTS = [];
+  window.USAGE_30D = [];
+  window.USAGE_14D = [];
+  window.STOCK_BY_WARD = [];
+  window.STOCK_BY_TYPE = [];
+  window.TYPE_USAGE_30D = [];
+  window.TYPE_LEAST_30D = [];
+  window.NOTIFICATIONS = [];
+  window.REPORTS = [];
+
+  console.log('🧹 Cleared all mock data');
+
   // Wait for app to load
   setTimeout(() => {
-    // Override window.STOCK to fetch from database on demand
-    let cachedStocks = null;
-    let lastFetch = 0;
-
-    Object.defineProperty(window, 'STOCK', {
-      get: function() {
-        return cachedStocks || [];
-      },
-      set: function(v) {
-        cachedStocks = v;
-      },
-      configurable: true
-    });
-
     // Hook React components to load from DB
     if (window.DBIntegration && window.DBIntegration.isOnline) {
       console.log('🔗 Database integration active — loading real data from Supabase');
 
-      // Fetch initial stocks
+      // Fetch initial stocks from database
       window.DBIntegration.getStocks().then(stocks => {
         window.STOCK = stocks;
-        console.log(`✅ Loaded ${stocks.length} stocks from database`);
-        // Trigger re-render by updating window.STOCK
+        console.log(`✅ Loaded ${stocks.length} stocks from Supabase`);
+
+        // Force page reload/update
         window.dispatchEvent(new CustomEvent('dbupdate'));
+        window.dispatchEvent(new Event('stocksUpdated'));
+
+        // Trigger React re-render if possible
+        if (window.location.href.includes('localhost') || window.location.href.includes('vercel.app')) {
+          console.log('📊 Data updated - refresh page to see changes');
+        }
+      }).catch(err => {
+        console.error('Failed to load from database:', err);
+        window.STOCK = [];
       });
     } else {
-      console.log('📦 Using mock data (database not configured)');
+      console.log('⚠️ Database not configured - running with empty data');
+      window.STOCK = [];
     }
-  }, 100);
+  }, 200);
 })();
 
 // Export for use in components
