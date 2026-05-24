@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Import CSV - Stock IV</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      padding: 40px;
+      max-width: 600px;
+      width: 100%;
+    }
+    h1 {
+      font-size: 28px;
+      color: #1a202c;
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+    .upload-zone {
+      border: 2px dashed #0EA5E9;
+      border-radius: 8px;
+      padding: 40px;
+      text-align: center;
+      cursor: pointer;
+      background: #f0f9ff;
+      margin-bottom: 20px;
+      transition: all 0.3s;
+    }
+    .upload-zone:hover {
+      background: #e0f2fe;
+      border-color: #0284c7;
+    }
+    .upload-zone input {
+      display: none;
+    }
+    .upload-icon {
+      font-size: 48px;
+      margin-bottom: 10px;
+    }
+    .upload-text {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 5px;
+    }
+    .upload-hint {
+      font-size: 12px;
+      color: #999;
+    }
+    .file-info {
+      background: #f8f8f8;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+      display: none;
+    }
+    .file-info.show {
+      display: block;
+    }
+    .file-name {
+      font-weight: 500;
+      color: #1a202c;
+      margin-bottom: 5px;
+    }
+    .file-stats {
+      font-size: 12px;
+      color: #666;
+    }
+    .preview {
+      margin-top: 20px;
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+    }
+    table {
+      width: 100%;
+      font-size: 12px;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 8px;
+      text-align: left;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    th {
+      background: #f0f0f0;
+      font-weight: 500;
+    }
+    .buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    button {
+      flex: 1;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .btn-import {
+      background: #0EA5E9;
+      color: white;
+    }
+    .btn-import:hover {
+      background: #0284c7;
+    }
+    .btn-import:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .btn-cancel {
+      background: #f0f0f0;
+      color: #666;
+    }
+    .btn-cancel:hover {
+      background: #e0e0e0;
+    }
+    .status {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 8px;
+      display: none;
+      font-size: 14px;
+    }
+    .status.show {
+      display: block;
+    }
+    .status.loading {
+      background: #fff3cd;
+      color: #856404;
+    }
+    .status.success {
+      background: #d4edda;
+      color: #155724;
+    }
+    .status.error {
+      background: #f8d7da;
+      color: #721c24;
+    }
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(0,0,0,0.1);
+      border-radius: 50%;
+      border-top-color: #0EA5E9;
+      animation: spin 0.8s linear infinite;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📥 Import ข้อมูลสารน้ำ</h1>
+    <p class="subtitle">Upload ไฟล์ CSV จาก Google Sheets</p>
+
+    <div class="upload-zone" id="uploadZone">
+      <div class="upload-icon">📄</div>
+      <div class="upload-text">คลิกหรือลาก CSV file มาตรงนี้</div>
+      <div class="upload-hint">รองรับ: .csv</div>
+      <input type="file" id="csvFile" accept=".csv" />
+    </div>
+
+    <div class="file-info" id="fileInfo">
+      <div class="file-name" id="fileName"></div>
+      <div class="file-stats" id="fileStats"></div>
+    </div>
+
+    <div class="preview" id="preview"></div>
+
+    <div class="buttons">
+      <button class="btn-import" id="importBtn" disabled>นำเข้าข้อมูล</button>
+      <button class="btn-cancel" id="cancelBtn">ยกเลิก</button>
+    </div>
+
+    <div class="status" id="status"></div>
+  </div>
+
+  <script>
+    const uploadZone = document.getElementById('uploadZone');
+    const csvFile = document.getElementById('csvFile');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileName = document.getElementById('fileName');
+    const fileStats = document.getElementById('fileStats');
+    const preview = document.getElementById('preview');
+    const importBtn = document.getElementById('importBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const status = document.getElementById('status');
+
+    let csvData = null;
+    let parsedRows = [];
+
+    // File upload
+    uploadZone.addEventListener('click', () => csvFile.click());
+    uploadZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadZone.style.background = '#e0f2fe';
+    });
+    uploadZone.addEventListener('dragleave', () => {
+      uploadZone.style.background = '#f0f9ff';
+    });
+    uploadZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadZone.style.background = '#f0f9ff';
+      if (e.dataTransfer.files[0]) {
+        handleFile(e.dataTransfer.files[0]);
+      }
+    });
+
+    csvFile.addEventListener('change', (e) => {
+      if (e.target.files[0]) {
+        handleFile(e.target.files[0]);
+      }
+    });
+
+    function handleFile(file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        csvData = e.target.result;
+        parsedRows = parseCSV(csvData);
+
+        fileName.textContent = `📁 ${file.name}`;
+        fileStats.textContent = `${parsedRows.length} แถว`;
+        fileInfo.classList.add('show');
+
+        showPreview(parsedRows);
+        importBtn.disabled = false;
+      };
+      reader.readAsText(file);
+    }
+
+    function parseCSV(csv) {
+      const lines = csv.trim().split('\n');
+      const headers = lines[0].split(',').map(h => h.trim());
+
+      const rows = [];
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(',').map(v => v.trim());
+        const row = {};
+        headers.forEach((h, idx) => {
+          row[h] = values[idx] || '';
+        });
+        rows.push(row);
+      }
+
+      return rows;
+    }
+
+    function showPreview(rows) {
+      if (rows.length === 0) return;
+
+      const headers = Object.keys(rows[0]);
+      let html = '<table><thead><tr>';
+
+      headers.forEach(h => {
+        html += `<th>${h}</th>`;
+      });
+      html += '</tr></thead><tbody>';
+
+      rows.slice(0, 5).forEach(row => {
+        html += '<tr>';
+        headers.forEach(h => {
+          html += `<td>${row[h]}</td>`;
+        });
+        html += '</tr>';
+      });
+
+      if (rows.length > 5) {
+        html += `<tr><td colspan="${headers.length}" style="text-align:center;color:#999;">... และอีก ${rows.length - 5} แถว</td></tr>`;
+      }
+
+      html += '</tbody></table>';
+      preview.innerHTML = html;
+    }
+
+    importBtn.addEventListener('click', async () => {
+      if (!parsedRows.length) return;
+
+      showStatus('loading', '⏳ กำลังนำเข้าข้อมูล...');
+      importBtn.disabled = true;
+
+      try {
+        // Get Supabase credentials
+        const SUPABASE_URL = window.SUPABASE_URL || '';
+        const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || '';
+
+        if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+          throw new Error('ไม่พบข้อมูล Supabase');
+        }
+
+        let successCount = 0;
+        let errorCount = 0;
+
+        for (const row of parsedRows) {
+          try {
+            const payload = {
+              code: row['รหัส'] || '',
+              name: row['ชื่อสารน้ำ'] || '',
+              type_code: row['ชื่อสารน้ำ']?.split('(')[0].trim() || '',
+              unit: row['หน่วย'] || 'ขวด',
+              quantity: 0,
+              ward_id: 'unassigned'
+            };
+
+            const res = await fetch(`${SUPABASE_URL}/rest/v1/stocks`, {
+              method: 'POST',
+              headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=representation'
+              },
+              body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+              successCount++;
+            } else {
+              errorCount++;
+              console.error('Row error:', row);
+            }
+          } catch (e) {
+            errorCount++;
+            console.error('Insert error:', e);
+          }
+        }
+
+        showStatus('success', `✅ นำเข้าสำเร็จ! ${successCount} รายการ${errorCount > 0 ? ` (${errorCount} ล้มเหลว)` : ''}`);
+
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 2000);
+
+      } catch (e) {
+        showStatus('error', `❌ เกิดข้อผิดพลาด: ${e.message}`);
+        importBtn.disabled = false;
+      }
+    });
+
+    cancelBtn.addEventListener('click', () => {
+      window.location.href = '/';
+    });
+
+    function showStatus(type, message) {
+      status.className = `status show ${type}`;
+      status.innerHTML = type === 'loading'
+        ? `<span class="spinner"></span>${message}`
+        : message;
+    }
+  </script>
+</body>
+</html>
