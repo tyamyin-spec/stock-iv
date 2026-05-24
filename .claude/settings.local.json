@@ -12,7 +12,10 @@
       "Bash(cp -R __TRACKED_VAR__/screenshots ./screenshots)",
       "mcp__Claude_Preview__preview_start",
       "Bash(awk '{print $9, \"\\(\" $5 \"\\)\"}')",
-      "mcp__Claude_in_Chrome__find"
+      "mcp__Claude_in_Chrome__find",
+      "Bash(git config *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
     ]
   }
 }
