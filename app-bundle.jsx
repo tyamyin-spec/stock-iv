@@ -296,7 +296,7 @@ const NAV_ITEMS = [
   { id: 'dashboard', label: 'แดชบอร์ด', icon: 'Home' },
   { id: 'stock',     label: 'รายการคงคลัง', icon: 'Box' },
   { id: 'add',       label: 'เพิ่ม/ลงข้อมูล', icon: 'Plus' },
-  { id: 'expiry',    label: 'แจ้งเตือนหมดอายุ', icon: 'AlertTri', badge: 14 },
+  { id: 'expiry',    label: 'แจ้งเตือนหมดอายุ', icon: 'AlertTri' },
   { id: 'reports',   label: 'รายงาน', icon: 'Chart' },
   { id: 'settings',  label: 'ตั้งค่า', icon: 'Settings' },
 ];
@@ -319,8 +319,18 @@ window.roleLabel = function (role) {
   return map[r] || r || 'เจ้าหน้าที่';
 };
 
+// Count items that are expired or expiring within 180 days (live, from real data).
+window.expiryAlertCount = function () {
+  const stock = window.STOCK || [];
+  return stock.filter((x) => {
+    const d = window.daysFromToday(x.exp);
+    return typeof d === 'number' && !isNaN(d) && d <= 180;
+  }).length;
+};
+
 function Sidebar({ active, onNavigate, user, onLogout }) {
   const I = window.Icons;
+  const badges = { expiry: window.expiryAlertCount() };
   return (
     <aside className="sidebar">
       <div className="brand">
@@ -335,6 +345,7 @@ function Sidebar({ active, onNavigate, user, onLogout }) {
         <div className="side-section-label">เมนูหลัก</div>
         {NAV_ITEMS.slice(0, 5).map((it) => {
           const Ico = I[it.icon];
+          const badge = badges[it.id];
           return (
             <button
               key={it.id}
@@ -344,7 +355,7 @@ function Sidebar({ active, onNavigate, user, onLogout }) {
             >
               <Ico size={19}/>
               <span>{it.label}</span>
-              {it.badge ? <span className="nav-badge">{it.badge}</span> : null}
+              {badge ? <span className="nav-badge">{badge}</span> : null}
             </button>
           );
         })}
