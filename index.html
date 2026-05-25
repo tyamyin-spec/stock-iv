@@ -19,13 +19,14 @@
 <div id="barcode-video" style="display:none; width:100%; height:100%;"></div>
 
 <script>
-// Set Supabase credentials from environment (injected by Vercel)
-window.SUPABASE_URL = '${SUPABASE_URL}';
-window.SUPABASE_ANON_KEY = '${SUPABASE_ANON_KEY}';
+// Supabase credentials (anon public key — safe to expose in the browser; RLS protects data).
+window.SUPABASE_URL = 'https://lolyljksptgrufvckpel.supabase.co';
+window.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvbHlsamtzcHRncnVmdmNrcGVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MTI0ODAsImV4cCI6MjA5NTE4ODQ4MH0.TB7es4zVVNCliELBAIRe-gtcBxGByquzY-pvLQ2lE7I';
 </script>
 
 <script src="data.js"></script>
 <script src="supabase-client.js"></script>
+<script src="auth.js?v=3"></script>
 <script src="db-integration.js"></script>
 <script src="barcode-scanner-v2.js"></script>
 <script type="text/babel" src="tweaks-panel.jsx"></script>

@@ -301,7 +301,25 @@ const NAV_ITEMS = [
   { id: 'settings',  label: 'ตั้งค่า', icon: 'Settings' },
 ];
 
-function Sidebar({ active, onNavigate }) {
+function initials(name) {
+  const s = (name || '').trim();
+  if (!s) return '?';
+  return s.slice(0, 2);
+}
+
+window.roleLabel = function (role) {
+  const r = (role || '').trim();
+  const map = {
+    RN: 'พยาบาลวิชาชีพ (RN)',
+    TN: 'พยาบาลเทคนิค (TN)',
+    PN: 'ผู้ช่วยพยาบาล (PN)',
+    NA: 'ผู้ช่วยเหลือคนไข้ (NA)',
+    admin: 'ผู้ดูแลระบบ',
+  };
+  return map[r] || r || 'เจ้าหน้าที่';
+};
+
+function Sidebar({ active, onNavigate, user, onLogout }) {
   const I = window.Icons;
   return (
     <aside className="sidebar">
@@ -342,19 +360,22 @@ function Sidebar({ active, onNavigate }) {
       </nav>
 
       <div className="side-foot">
-        <div className="side-user" role="button" tabIndex={0}>
-          <div className="avatar">นภ</div>
+        <div className="side-user">
+          <div className="avatar">{initials(user?.display_name)}</div>
           <div className="who">
-            <div className="name">นภัสสร อ.</div>
-            <div className="role">ผู้ช่วยพยาบาล · SEMI SX</div>
+            <div className="name">{user?.display_name || 'ผู้ใช้'}</div>
+            <div className="role">{window.roleLabel(user?.role)}</div>
           </div>
+          <button className="icon-btn" aria-label="ออกจากระบบ" title="ออกจากระบบ" onClick={onLogout}>
+            <I.Logout size={18}/>
+          </button>
         </div>
       </div>
     </aside>
   );
 }
 
-function Topbar({ title, crumb, onOpenSearch, onOpenNotifs, onOpenMenu, notifCount }) {
+function Topbar({ title, crumb, onOpenSearch, onOpenNotifs, onOpenMenu, notifCount, user, onLogout }) {
   const I = window.Icons;
   return (
     <header className="topbar">
@@ -384,13 +405,13 @@ function Topbar({ title, crumb, onOpenSearch, onOpenNotifs, onOpenMenu, notifCou
             <I.Bell size={20}/>
             {notifCount > 0 ? <span className="badge-dot"></span> : null}
           </button>
-          <button className="topbar-profile" aria-label="โปรไฟล์">
-            <div className="avatar">นภ</div>
+          <button className="topbar-profile" aria-label="ออกจากระบบ" title="ออกจากระบบ" onClick={onLogout}>
+            <div className="avatar">{initials(user?.display_name)}</div>
             <div className="who">
-              <span className="name">นภัสสร อ.</span>
-              <span className="role">ผู้ช่วยพยาบาล</span>
+              <span className="name">{user?.display_name || 'ผู้ใช้'}</span>
+              <span className="role">{window.roleLabel(user?.role)}</span>
             </div>
-            <I.ChevronDown size={14}/>
+            <I.Logout size={14}/>
           </button>
         </div>
       </div>
@@ -566,8 +587,8 @@ function DashboardPage({ onNavigate, onOpenAdd, onOpenScan }) {
   }, [ward, dateFactor, isToday, date.d, usageRange]);
 
   // Hero values
-  const stockSemiSX = Math.round(window.STOCK_BY_WARD.find((w) => w.id === 'semi-sx').qty * dateFactor);
-  const stockSurgM  = Math.round(window.STOCK_BY_WARD.find((w) => w.id === 'surg-male').qty * dateFactor);
+  const stockSemiSX = Math.round((window.STOCK_BY_WARD.find((w) => w.id === 'semi-sx')?.qty || 0) * dateFactor);
+  const stockSurgM  = Math.round((window.STOCK_BY_WARD.find((w) => w.id === 'surg-male')?.qty || 0) * dateFactor);
   const totalStock  = stockSemiSX + stockSurgM;
 
   const heroTotal = ward === 'all' ? totalStock : wardData.total;
@@ -1130,8 +1151,8 @@ function UsageRangeToggle({ value, onChange }) {
 function UsageBarChart({ data, range = '14d' }) {
   const [hover, setHover] = uS(null);
   const mounted = useMountIn(300);
-  const max = Math.max(...data);
-  const avg = data.reduce((s, x) => s + x, 0) / data.length;
+  const max = data.length ? Math.max(Math.max(...data), 1) : 1;
+  const avg = data.length ? data.reduce((s, x) => s + x, 0) / data.length : 0;
   const w = 800, h = 240, pad = { l: 36, r: 12, t: 24, b: 30 };
   const barW = (w - pad.l - pad.r) / data.length;
   const innerH = h - pad.t - pad.b;
@@ -2282,7 +2303,71 @@ Object.assign(window, { SettingsPage });
 
 const { useState: uAS, useEffect: uAE } = React;
 
+function LoginScreen({ onLogin }) {
+  const I = window.Icons;
+  const [username, setUsername] = uAS('');
+  const [password, setPassword] = uAS('');
+  const [error, setError] = uAS('');
+  const [busy, setBusy] = uAS(false);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (busy) return;
+    setError('');
+    setBusy(true);
+    const res = await window.Auth.login(username, password);
+    setBusy(false);
+    if (res.ok) {
+      onLogin(res.user);
+    } else {
+      setError(res.error || 'เข้าสู่ระบบไม่สำเร็จ');
+    }
+  };
+
+  return (
+    <div className="login-screen">
+      <form className="card card-pad login-card" onSubmit={submit}>
+        <div className="login-brand">
+          <div className="brand-mark"><I.IVBag size={26}/></div>
+          <div className="brand-text">
+            <span className="name">Stock IV</span>
+            <span className="sub">ระบบจัดการสารน้ำ</span>
+          </div>
+        </div>
+
+        <h2 className="login-title">เข้าสู่ระบบ</h2>
+
+        <window.Field label="ชื่อ" required>
+          <window.Input
+            icon={<I.User size={16}/>}
+            placeholder="ชื่อจริง เช่น อุมา"
+            value={username}
+            autoFocus
+            autoComplete="username"
+            onChange={(e) => setUsername(e.target.value)}
+          />
+        </window.Field>
+
+        <window.Field label="รหัสผ่าน" required error={error}>
+          <window.Input
+            type="password"
+            placeholder="••••••••"
+            value={password}
+            autoComplete="current-password"
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </window.Field>
+
+        <window.Button type="submit" variant="primary" size="lg" className="login-submit" disabled={busy}>
+          {busy ? 'กำลังเข้าสู่ระบบ…' : 'เข้าสู่ระบบ'}
+        </window.Button>
+      </form>
+    </div>
+  );
+}
+
 function App() {
+  const [user, setUser] = uAS(() => window.Auth.getCurrentUser());
   const [page, setPage] = uAS('dashboard');
   const [openNotif, setOpenNotif] = uAS(false);
   const [openScan, setOpenScan] = uAS(false);
@@ -2321,16 +2406,27 @@ function App() {
   const openAdd = () => { setScannedCode(null); setPage('add'); };
   const openScanModal = () => setOpenScan(true);
 
+  const logout = () => {
+    window.Auth.logout();
+    setUser(null);
+  };
+
+  if (!user) {
+    return <LoginScreen onLogin={setUser}/>;
+  }
+
   return (
     <window.ToastProvider>
       <div className="app" data-screen-label={`Stock IV — ${titles.title}`}>
-        <window.Sidebar active={page} onNavigate={setPage}/>
+        <window.Sidebar active={page} onNavigate={setPage} user={user} onLogout={logout}/>
         <window.Topbar
           title={titles.title}
           crumb={titles.crumb}
           onOpenNotifs={() => setOpenNotif(true)}
           notifCount={window.NOTIFICATIONS.length}
           onOpenMenu={() => alert('เมนูมือถือ — ใช้แท็บล่างแทน')}
+          user={user}
+          onLogout={logout}
         />
         <main className="main">
           {page === 'dashboard' && <window.DashboardPage onNavigate={setPage} onOpenAdd={openAdd} onOpenScan={openScanModal}/>}

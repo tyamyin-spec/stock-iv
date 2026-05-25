@@ -809,3 +809,41 @@
   font: inherit; font-size: 13px; color: var(--text-3); font-weight: 500;
 }
 .segmented button[aria-pressed="true"] { background: var(--surface); color: var(--brand-700); box-shadow: var(--shadow-xs); }
+
+/* ---------- Login screen ---------- */
+.login-screen {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: linear-gradient(160deg, var(--brand-700, #1746A1), var(--brand-500, #1E6FEB));
+}
+.login-card {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.login-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.login-brand .brand-mark {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  color: var(--brand-500, #1E6FEB);
+  background: var(--brand-50, #EAF2FE);
+}
+.login-brand .brand-text { display: flex; flex-direction: column; }
+.login-brand .brand-text .name { font-size: 18px; font-weight: 700; color: var(--text-1); }
+.login-brand .brand-text .sub { font-size: 12.5px; color: var(--text-3); }
+.login-title { font-size: 16px; font-weight: 600; color: var(--text-1); margin: 4px 0 0; }
+.login-submit { width: 100%; justify-content: center; }
+.side-user .who { flex: 1; }
