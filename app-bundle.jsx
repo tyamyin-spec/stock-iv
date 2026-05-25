@@ -2203,6 +2203,10 @@ const { useState: usgS } = React;
 
 function SettingsPage() {
   const I = window.Icons;
+  let _user=null; try{_user=JSON.parse(localStorage.getItem("stockiv_user")||"null")}catch(e){}
+  const _displayName=_user&&_user.display_name?_user.display_name:"";
+  const _roleLabel=(window.roleLabel?window.roleLabel(_user&&_user.role):"")||"";
+  const _initial=((_user&&_user.display_name)||"?").trim().charAt(0)||"?";
   return (
     <div>
       <div className="page-head">
@@ -2218,17 +2222,17 @@ function SettingsPage() {
           <window.Card>
             <window.SectionTitle title="โปรไฟล์ผู้ใช้"/>
             <div className="row" style={{ gap: 16, marginBottom: 16 }}>
-              <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'linear-gradient(135deg, #60A5FA, #1E6FEB)', color: '#fff', display: 'grid', placeItems: 'center', fontSize: 22, fontWeight: 600 }}>นภ</div>
+              <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'linear-gradient(135deg, #60A5FA, #1E6FEB)', color: '#fff', display: 'grid', placeItems: 'center', fontSize: 22, fontWeight: 600 }}>{_initial}</div>
               <div>
-                <div style={{ fontSize: 16, fontWeight: 600 }}>นภัสสร อ.</div>
-                <div className="muted">ผู้ช่วยพยาบาล · SEMI SX</div>
+                <div style={{ fontSize: 16, fontWeight: 600 }}>{_displayName||"ผู้ใช้"}</div>
+                <div className="muted">{_roleLabel}</div>
               </div>
             </div>
             <div className="grid-12" style={{ gap: 14 }}>
-              <div style={{ gridColumn: 'span 6' }}><window.Field label="ชื่อ"><window.Input defaultValue="นภัสสร"/></window.Field></div>
-              <div style={{ gridColumn: 'span 6' }}><window.Field label="นามสกุล"><window.Input defaultValue="อนันต์โชค"/></window.Field></div>
-              <div style={{ gridColumn: 'span 6' }}><window.Field label="อีเมล"><window.Input defaultValue="napas.a@hospital.go.th"/></window.Field></div>
-              <div style={{ gridColumn: 'span 6' }}><window.Field label="วอร์ดหลัก"><window.Select defaultValue="semi-sx">{window.WARDS.filter((w) => w.id !== 'all').map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}</window.Select></window.Field></div>
+              <div style={{ gridColumn: 'span 6' }}><window.Field label="ชื่อ"><window.Input/></window.Field></div>
+              <div style={{ gridColumn: 'span 6' }}><window.Field label="นามสกุล"><window.Input/></window.Field></div>
+              <div style={{ gridColumn: 'span 6' }}><window.Field label="อีเมล"><window.Input/></window.Field></div>
+              <div style={{ gridColumn: 'span 6' }}><window.Field label="วอร์ดหลัก"><window.Select defaultValue="">{window.WARDS.filter((w) => w.id !== 'all').map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}</window.Select></window.Field></div>
             </div>
           </window.Card>
 
