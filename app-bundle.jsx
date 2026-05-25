@@ -1735,7 +1735,10 @@ function AddPage({ onDone, prefillBarcode, onOpenScan }) {
                     <window.Select value={form.code} onChange={(e) => {
                       const t = window.FLUID_TYPES.find((x) => x.code === e.target.value);
                       upd('code', e.target.value);
-                      if (t) upd('name', t.name);
+                      if (t) {
+                        upd('name', t.name);
+                        if (t.min !== undefined) upd('min', t.min);
+                      }
                     }}>
                       <option value="">— เลือก —</option>
                       {window.FLUID_TYPES.map((t) => <option key={t.code} value={t.code}>{t.code} — {t.full}</option>)}
@@ -1759,7 +1762,7 @@ function AddPage({ onDone, prefillBarcode, onOpenScan }) {
                   </window.Field>
                 </div>
                 <div style={{ gridColumn: 'span 4' }}>
-                  <window.Field label="จำนวน (ขวด)" required>
+                  <window.Field label={`จำนวน (${(window.FLUID_TYPES.find(x=>x.code===form.code)||{}).unit||'ขวด'})`} required>
                     <window.Input type="number" min={1} value={form.qty} onChange={(e) => upd('qty', +e.target.value)}/>
                   </window.Field>
                 </div>
