@@ -2232,7 +2232,7 @@ function SettingsPage() {
               <div style={{ gridColumn: 'span 6' }}><window.Field label="ชื่อ"><window.Input/></window.Field></div>
               <div style={{ gridColumn: 'span 6' }}><window.Field label="นามสกุล"><window.Input/></window.Field></div>
               <div style={{ gridColumn: 'span 6' }}><window.Field label="อีเมล"><window.Input/></window.Field></div>
-              <div style={{ gridColumn: 'span 6' }}><window.Field label="วอร์ดหลัก"><window.Select defaultValue="">{window.WARDS.filter((w) => w.id !== 'all').map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}</window.Select></window.Field></div>
+              
             </div>
           </window.Card>
 
