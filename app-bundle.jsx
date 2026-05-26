@@ -1621,10 +1621,7 @@ function AddPage({ onDone, prefillBarcode, onOpenScan }) {
     }
   }, [prefillBarcode]);
 
-  const handleSubmit = () => {
-    toast({ tone: 'success', title: `บันทึก${mode === 'in' ? 'รับเข้า' : mode === 'out' ? 'เบิกออก' : 'เพิ่มรายการใหม่'}สำเร็จ`, desc: `${form.name} จำนวน ${form.qty} ขวด` });
-    onDone?.();
-  };
+  const handleSubmit = async () => { try { if (mode === 'in' || mode === 'new') { const result = await window.DBIntegration?.addStock?.({ code: form.code, name: form.name, type: form.code, ward: form.ward, lot: form.lot, qty: form.qty, expiry: form.exp }); if (!result) { toast({ tone: 'danger', title: 'บันทึกไม่สำเร็จ', desc: 'ไม่สามารถบันทึกข้อมูลลงฐานข้อมูลได้ กรุณาลองใหม่' }); return; } } toast({ tone: 'success', title: `บันทึก${mode === 'in' ? 'รับเข้า' : mode === 'out' ? 'เบิกออก' : 'เพิ่มรายการใหม่'}สำเร็จ`, desc: `${form.name} จำนวน ${form.qty} ขวด` }); onDone?.(); } catch (e) { console.error('Submit error:', e); toast({ tone: 'danger', title: 'เกิดข้อผิดพลาด', desc: String(e.message || e) }); } };
 
   const steps = [
     { num: 1, label: 'เลือกวิธีการ' },
