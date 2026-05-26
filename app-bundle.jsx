@@ -2239,8 +2239,6 @@ function SettingsPage() {
           <window.Card>
             <window.SectionTitle title="ข้อมูลพื้นฐาน" subtitle="กำหนดค่าที่ใช้ทั้งระบบ"/>
             <div className="col" style={{ gap: 14 }}>
-              <SettingRow icon={<I.Box size={18}/>} title="ขั้นต่ำคงเหลือเริ่มต้น" desc="ค่าเริ่มต้นเมื่อเพิ่มสารน้ำใหม่"
-                control={<window.Input type="number" defaultValue={30} style={{ width: 100 }}/>}/>
               <SettingRow icon={<I.Clock size={18}/>} title="ระยะเตือนใกล้หมดอายุ" desc="แสดงเตือนเมื่อเหลือกี่วัน"
                 control={<window.Select defaultValue="180" style={{ width: 140 }}><option value="30">30 วัน</option><option value="90">90 วัน</option><option value="180">180 วัน</option><option value="210">210 วัน</option><option value="365">365 วัน</option></window.Select>}/>
               <SettingRow icon={<I.Scan size={18}/>} title="อุปกรณ์สแกนบาร์โค้ด" desc="เชื่อมต่อ USB scanner หรือใช้กล้องของอุปกรณ์"
