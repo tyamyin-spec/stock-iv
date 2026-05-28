@@ -1563,7 +1563,7 @@ function EditStockModal({ item, onClose, onSave }) {
           </div>
           <div style={{ gridColumn: 'span 6' }}>
             <window.Field label="วันหมดอายุ (พ.ศ.)">
-              <window.Input value={form.exp} onChange={(e) => update('exp', e.target.value)}/>
+              <window.Input type="date" value={form.exp ? (String(+form.exp.slice(0,4)-543).padStart(4,'0')+form.exp.slice(4)) : ''} onChange={(e) => update('exp', e.target.value ? (String(+e.target.value.slice(0,4)+543).padStart(4,'0')+e.target.value.slice(4)) : '')}/>
             </window.Field>
           </div>
           <div style={{ gridColumn: 'span 4' }}>
@@ -1755,7 +1755,7 @@ function AddPage({ onDone, prefillBarcode, onOpenScan }) {
                 </div>
                 <div style={{ gridColumn: 'span 4' }}>
                   <window.Field label="วันหมดอายุ (พ.ศ.)" required>
-                    <window.Input value={form.exp} onChange={(e) => upd('exp', e.target.value)} placeholder="2568-05-21"/>
+                    <window.Input type="date" value={form.exp ? (String(+form.exp.slice(0,4)-543).padStart(4,'0')+form.exp.slice(4)) : ''} onChange={(e) => upd('exp', e.target.value ? (String(+e.target.value.slice(0,4)+543).padStart(4,'0')+e.target.value.slice(4)) : '')}/>
                   </window.Field>
                 </div>
                 <div style={{ gridColumn: 'span 4' }}>
