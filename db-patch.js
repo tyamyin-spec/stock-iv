@@ -25,6 +25,22 @@
       // Fetch initial stocks from database
       window.DBIntegration.getStocks().then(stocks => {
         window.STOCK = stocks;
+                        // Compute STOCK_BY_WARD from loaded stocks (needed for dashboard KPIs)
+                        const wardMap = {};
+                        stocks.forEach(s => {
+                                            const wId = s.ward || 'unknown';
+                                            if (!wardMap[wId]) wardMap[wId] = 0;
+                                            wardMap[wId] += (s.qty || 0);
+                        });
+                        window.STOCK_BY_WARD = Object.entries(wardMap).map(([id, qty]) => ({ id, qty }));
+                        // Compute STOCK_BY_TYPE from loaded stocks
+                        const typeMap = {};
+                        stocks.forEach(s => {
+                                            const tId = s.type || s.code || 'unknown';
+                                            if (!typeMap[tId]) typeMap[tId] = { id: tId, name: s.name || tId, qty: 0 };
+                                            typeMap[tId].qty += (s.qty || 0);
+                        });
+                        window.STOCK_BY_TYPE = Object.values(typeMap).sort((a, b) => b.qty - a.qty).slice(0, 10);
         console.log(`✅ Loaded ${stocks.length} stocks from Supabase`);
 
         // Force page reload/update
