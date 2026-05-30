@@ -606,12 +606,12 @@ function DashboardPage({ onNavigate, onOpenAdd, onOpenScan }) {
   const heroLabel = ward === 'all' ? 'Stock รวมทั้งหมด' : `Stock ${window.WARDS.find((w) => w.id === ward)?.name}`;
 
   const sparks = {
-    total:  [580, 595, 590, 605, 600, 615, 620],
-    semi:   [380, 390, 395, 405, 410, 415, 420],
-    surg:   [170, 175, 180, 185, 190, 195, 200],
-    low:    [12, 10, 11, 9, 10, 8, 8],
-    soon:   [10, 11, 11, 12, 12, 13, 12],
-    expd:   [3, 3, 2, 2, 2, 2, 2],
+    total: (() => { const t = totalStock || 0; return [t,t,t,t,t,t,t]; })(),
+            semi:  (() => { const s = Math.round((window.STOCK_BY_WARD.find(w => w.id === 'semi-sx')?.qty || 0)); return [s,s,s,s,s,s,s]; })(),
+            surg:  (() => { const s = Math.round((window.STOCK_BY_WARD.find(w => w.id === 'surg-male')?.qty || 0)); return [s,s,s,s,s,s,s]; })(),
+            low:   [0,0,0,0,0,0,0],
+            soon:  [0,0,0,0,0,0,0],
+            expd:  [0,0,0,0,0,0,0],
   };
 
   const wardName = window.WARDS.find((w) => w.id === ward)?.name;
