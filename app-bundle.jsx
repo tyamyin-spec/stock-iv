@@ -2502,6 +2502,7 @@ function App() {
                   { value: 'expiry', label: 'หมดอายุ' },
                   { value: 'reports', label: 'รายงาน' },
                   { value: 'settings', label: 'ตั้งค่า' },
+                  { value: 'receive', label: 'รับเข้าคลังกลาง' },
                 ]}
               />
               <window.TweakButton onClick={openScanModal}>เปิด Barcode Scanner</window.TweakButton>
