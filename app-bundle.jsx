@@ -535,6 +535,16 @@ function DashboardPage({ onNavigate, onOpenAdd, onOpenScan }) {
   const I = window.Icons;
   const [ward, setWard] = uS('all');
   const [date, setDate] = uS({ y: 2567, m: 5, d: 21 });
+    const [dbVersion, setDbVersion] = uS(0);
+    uE(() => {
+          const onDbUpdate = () => setDbVersion(v => v + 1);
+          window.addEventListener('dbupdate', onDbUpdate);
+          window.addEventListener('stocksUpdated', onDbUpdate);
+          return () => {
+                  window.removeEventListener('dbupdate', onDbUpdate);
+                  window.removeEventListener('stocksUpdated', onDbUpdate);
+          };
+    }, []);
   const [usageRange, setUsageRange] = uS('14d');
 
   // Date-based variation factor (deterministic from date for demo)
@@ -595,7 +605,7 @@ function DashboardPage({ onNavigate, onOpenAdd, onOpenScan }) {
       : window.STOCK_BY_WARD.map((w) => ({ ...w, qty: w.id === ward ? total : 0 })).filter((w) => w.qty > 0);
 
     return { total, lowStock, expSoon, expired, stockByType, usage30d, usageDaily, expiringItems, wardChartData, wardShare };
-  }, [ward, dateFactor, isToday, date.d, usageRange]);
+  }, [ward, dateFactor, isToday, date.d, usageRange, dbVersion]);
 
   // Hero values
   const stockSemiSX = Math.round((window.STOCK_BY_WARD.find((w) => w.id === 'semi-sx')?.qty || 0) * dateFactor);
