@@ -45,7 +45,7 @@
                                      ward: s.ward_id,
                                      lot: s.lot_number,
                                      qty: s.quantity || 0,
-                                     expiry: s.expiry_date,
+                                     exp: s.expiry_date,
                                      status: getStockStatus(s.expiry_date),
                                      notes: `Stock ID: ${s.id}`
                        }));
@@ -73,7 +73,7 @@
                                  lot_number: data.lot,
                                  quantity: parseInt(data.qty) || 0,
                                  unit: 'ขวด',
-                                 expiry_date: data.expiry
+                                 expiry_date: data.exp
                      };
 
                    const res = await fetch(`${SUPABASE_URL}/rest/v1/stocks`, {
@@ -116,7 +116,7 @@
                                  ward_id: data.ward,
                                  lot_number: data.lot,
                                  quantity: parseInt(data.qty) || 0,
-                                 expiry_date: data.expiry
+                                 expiry_date: data.exp
                      };
 
                    const res = await fetch(`${SUPABASE_URL}/rest/v1/stocks?id=eq.${id}`, {
