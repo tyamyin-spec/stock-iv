@@ -9,6 +9,7 @@ window.WARDS = [
   { id: 'surg-female', name: 'ศัลยกรรมหญิง' },
   { id: 'icu', name: 'ICU' },
   { id: 'er', name: 'ER' },
+  { id: 'central', name: 'คลังกลาง' },
 ];
 
 // Fluid types (master catalog - synced with Supabase fluid_types table)
