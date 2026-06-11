@@ -1,25 +1,50 @@
-// Reports page — reads wards from live data.
+// Reports page — reads live data and exports real CSV / Excel / PDF files.
 
 import { useState } from 'react';
 import { Icons } from '../icons';
 import { Button, Card, EmptyState, Field, Input, SectionTitle, Select, useToast } from '../ui';
-import { useWards } from '../lib/data';
+import { useFluids, useMovements, usePrices, useStock, useWards } from '../lib/data';
+import { exportReport, type ReportFormat, type ReportId } from '../lib/export';
 
 export function ReportsPage() {
   const I = Icons;
   const toast = useToast();
   const { wards } = useWards();
+  const { stock } = useStock();
+  const { movements } = useMovements(1000);
+  const { fluids } = useFluids();
+  const { prices } = usePrices();
   const [from, setFrom] = useState('2567-05-01');
   const [to, setTo] = useState('2567-05-21');
   const [ward, setWard] = useState('all');
-  const [format, setFormat] = useState<'xlsx' | 'pdf' | 'csv'>('xlsx');
+  const [format, setFormat] = useState<ReportFormat>('xlsx');
 
-  const handleExport = () => {
-    toast({
-      tone: 'success',
-      title: 'กำลังสร้างไฟล์...',
-      desc: `รูปแบบ ${format.toUpperCase()} · ${from} → ${to}`,
-    });
+  const handleExport = (id: ReportId) => {
+    try {
+      const data = exportReport(id, format, { stock, movements, wards, fluids, prices, from, to, ward });
+      if (data.rows.length === 0) {
+        toast({ tone: 'warning', title: 'ไม่มีข้อมูลในช่วงที่เลือก', desc: data.title });
+      } else {
+        toast({
+          tone: 'success',
+          title: format === 'pdf' ? 'เปิดหน้าต่างพิมพ์ PDF แล้ว' : 'ดาวน์โหลดไฟล์แล้ว',
+          desc: `${data.title} · ${data.rows.length} รายการ`,
+        });
+      }
+    } catch (e: any) {
+      toast({ tone: 'danger', title: 'สร้างไฟล์ไม่สำเร็จ', desc: e?.message });
+    }
+  };
+
+  const handlePreview = (id: ReportId) => {
+    try {
+      const data = exportReport(id, 'pdf', { stock, movements, wards, fluids, prices, from, to, ward });
+      if (data.rows.length === 0) {
+        toast({ tone: 'warning', title: 'ไม่มีข้อมูลในช่วงที่เลือก', desc: data.title });
+      }
+    } catch (e: any) {
+      toast({ tone: 'danger', title: 'เปิดตัวอย่างไม่สำเร็จ', desc: e?.message });
+    }
   };
 
   return (
@@ -100,10 +125,15 @@ export function ReportsPage() {
                     {r.desc}
                   </div>
                   <div className="report-card-foot">
-                    <Button variant="ghost" size="sm">
+                    <Button variant="ghost" size="sm" onClick={() => handlePreview(r.id as ReportId)}>
                       ดูตัวอย่าง
                     </Button>
-                    <Button variant="primary" size="sm" icon={<I.Download size={14} />} onClick={handleExport}>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      icon={<I.Download size={14} />}
+                      onClick={() => handleExport(r.id as ReportId)}
+                    >
                       Export
                     </Button>
                   </div>
