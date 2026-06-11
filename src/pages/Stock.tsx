@@ -22,7 +22,7 @@ import type { StockRow, Ward } from '../lib/db.types';
 export function StockPage({ onOpenAdd, onOpenScan }: { onOpenAdd: () => void; onOpenScan: () => void }) {
   const I = Icons;
   const toast = useToast();
-  const { stock, loading, update, remove } = useStock();
+  const { stock, loading, update, remove, transfer } = useStock();
   const { wards } = useWards();
   const { fluids } = useFluids();
 
@@ -36,6 +36,7 @@ export function StockPage({ onOpenAdd, onOpenScan }: { onOpenAdd: () => void; on
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [confirm, setConfirm] = useState<{ ids: string[]; desc: string } | null>(null);
   const [editing, setEditing] = useState<StockRow | null>(null);
+  const [transfering, setTransfering] = useState<StockRow | null>(null);
   const [page, setPage] = useState(1);
   const perPage = 8;
 
@@ -319,6 +320,7 @@ export function StockPage({ onOpenAdd, onOpenScan }: { onOpenAdd: () => void; on
                       </td>
                       <td>
                         <div className="actions">
+                          <IconButton icon={<I.ArrowRight size={16} />} label="โอนย้าย" onClick={() => setTransfering(x)} />
                           <IconButton icon={<I.Edit size={16} />} label="แก้ไข" onClick={() => setEditing(x)} />
                           <IconButton
                             icon={<I.Trash size={16} />}
@@ -384,6 +386,24 @@ export function StockPage({ onOpenAdd, onOpenScan }: { onOpenAdd: () => void; on
               toast({ tone: 'success', title: 'บันทึกการแก้ไขแล้ว', desc: editing.display_code });
             } catch (e: any) {
               toast({ tone: 'danger', title: 'บันทึกไม่สำเร็จ', desc: e?.message });
+            }
+          }}
+        />
+      )}
+
+      {transfering && (
+        <TransferStockModal
+          item={transfering}
+          wards={wards}
+          fluids={fluids}
+          onClose={() => setTransfering(null)}
+          onTransfer={async (input) => {
+            try {
+              await transfer(input);
+              setTransfering(null);
+              toast({ tone: 'success', title: 'โอนย้ายสำเร็จ', desc: `โอน ${input.qty} ขวดไปยัง ${wards.find((w) => w.id === input.to_ward_id)?.name || 'ward'}` });
+            } catch (e: any) {
+              toast({ tone: 'danger', title: 'โอนย้ายไม่สำเร็จ', desc: e?.message });
             }
           }}
         />
@@ -464,6 +484,113 @@ function EditStockModal({
         </div>
         <Field label="Barcode">
           <Input className="mono" value={form.barcode ?? ''} onChange={(e) => u('barcode', e.target.value || null)} />
+        </Field>
+      </div>
+    </Modal>
+  );
+}
+
+function TransferStockModal({
+  item,
+  wards,
+  fluids,
+  onClose,
+  onTransfer,
+}: {
+  item: StockRow;
+  wards: Ward[];
+  fluids: any[];
+  onClose: () => void;
+  onTransfer: (input: { from_id: string; to_ward_id: string; qty: number; note?: string }) => void | Promise<void>;
+}) {
+  const [toWardId, setToWardId] = useState('');
+  const [qty, setQty] = useState('1');
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const sourceWard = wards.find((w) => w.id === item.ward_id);
+  const targetWard = wards.find((w) => w.id === toWardId);
+  const fluidName = fluids.find((f) => f.code === item.fluid_code)?.name || item.fluid_code;
+  const qtyNum = Math.max(1, Math.min(item.qty, parseInt(qty) || 1));
+  const canTransfer = toWardId && toWardId !== item.ward_id && qtyNum > 0 && qtyNum <= item.qty;
+
+  return (
+    <Modal
+      open={true}
+      onClose={onClose}
+      title="โอนย้ายสารน้ำ"
+      subtitle={`จาก ${sourceWard?.name || ''} → ไป ${targetWard?.name || 'เลือกวอร์ด'}`}
+      size="md"
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose} disabled={busy}>
+            ยกเลิก
+          </Button>
+          <Button variant="primary" disabled={!canTransfer || busy} onClick={async () => {
+            setBusy(true);
+            try {
+              await onTransfer({
+                from_id: item.id,
+                to_ward_id: toWardId,
+                qty: qtyNum,
+                note: note || undefined,
+              });
+              onClose();
+            } finally {
+              setBusy(false);
+            }
+          }}>
+            {busy ? 'กำลังโอนย้าย…' : 'โอนย้าย'}
+          </Button>
+        </>
+      }
+    >
+      <div className="col" style={{ gap: 14 }}>
+        <div className="card-info" style={{ background: 'var(--surface-2)', padding: 12, borderRadius: 8 }}>
+          <div style={{ fontSize: 12, color: 'var(--text-3)' }}>รายการต้นทาง</div>
+          <div style={{ fontSize: 14, fontWeight: 600, marginTop: 4 }}>
+            {fluidName} · {item.lot}
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>
+            {sourceWard?.name} · คงเหลือ {item.qty} ขวด
+          </div>
+        </div>
+
+        <Field label="วอร์ดปลายทาง" required>
+          <Select value={toWardId} onChange={(e) => setToWardId(e.target.value)}>
+            <option value="">เลือกวอร์ด</option>
+            {wards
+              .filter((w) => w.id !== item.ward_id)
+              .map((w) => (
+                <option key={w.id} value={w.id}>
+                  {w.name}
+                </option>
+              ))}
+          </Select>
+        </Field>
+
+        <Field label="จำนวนที่จะโอนย้าย (ขวด)" required>
+          <Input
+            type="number"
+            min={1}
+            max={item.qty}
+            value={qty}
+            onChange={(e) => setQty(e.target.value)}
+            placeholder="1"
+          />
+          <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>
+            สูงสุด {item.qty} ขวด
+          </div>
+        </Field>
+
+        <Field label="หมายเหตุ" hint="ไม่บังคับ">
+          <textarea
+            className="input"
+            rows={2}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="เช่น ส่วนเกินหลังตรวจสอบ"
+          />
         </Field>
       </div>
     </Modal>

@@ -369,7 +369,85 @@ export function useStock() {
     [update],
   );
 
-  return { stock: r.data, loading: r.loading, error: r.error, refresh: r.refresh, create, update, remove, adjustQty };
+  // Transfer stock from one ward to another
+  const transfer = useCallback(
+    async (input: { from_id: string; to_ward_id: string; qty: number; note?: string }) => {
+      const all = await loadStockRows();
+      const source = all.find((s) => s.id === input.from_id);
+      if (!source) throw new Error('Source stock not found');
+      if (source.qty < input.qty) throw new Error(`Not enough stock. Available: ${source.qty}`);
+
+      // Create or find destination stock (same fluid, target ward)
+      let destId: string;
+      const existing = all.find(
+        (s) =>
+          s.ward_id === input.to_ward_id &&
+          s.fluid_code === source.fluid_code &&
+          s.lot === source.lot &&
+          s.expiry === source.expiry,
+      );
+
+      if (existing) {
+        // Top up existing
+        destId = existing.id;
+        await update(destId, { qty: existing.qty + input.qty });
+      } else {
+        // Create new entry in target ward
+        const newStock = await create({
+          display_code: 'T' + Date.now().toString().slice(-6), // Temporary code for transfers
+          fluid_code: source.fluid_code,
+          ward_id: input.to_ward_id,
+          lot: source.lot,
+          expiry: source.expiry,
+          qty: input.qty,
+          min_qty: source.min_qty,
+          max_qty: source.max_qty,
+          barcode: source.barcode,
+          note: `Transferred from ${source.ward_id}. ${input.note ?? ''}`.trim(),
+        });
+        destId = newStock.id;
+      }
+
+      // Reduce source
+      await adjustQty(source.id, -input.qty);
+
+      // Record movements
+      const movementNote = `Transfer ${input.qty} from [${source.ward_id}] to [${input.to_ward_id}]. ${input.note ?? ''}`.trim();
+      // We create one movement for tracking; in a real system you'd make 2 (out + in)
+      if (isSupabaseConfigured) {
+        const { error } = await (requireSupabase().from('movements') as any).insert({
+          stock_id: source.id,
+          fluid_code: source.fluid_code,
+          ward_id: source.ward_id,
+          kind: 'out',
+          qty: -input.qty,
+          note: movementNote,
+          by_user: user?.id ?? null,
+        });
+        if (error) throw error;
+      } else {
+        const all = lsGet<Movement[]>(LS_MOVEMENTS, []);
+        const movement: Movement = {
+          id: uuid(),
+          stock_id: source.id,
+          fluid_code: source.fluid_code,
+          ward_id: source.ward_id,
+          kind: 'out',
+          qty: -input.qty,
+          note: movementNote,
+          occurred_at: new Date().toISOString(),
+          by_user: user?.id ?? null,
+        };
+        lsSet(LS_MOVEMENTS, [movement, ...all]);
+      }
+
+      await r.refresh();
+      return destId;
+    },
+    [create, update, adjustQty, r, user],
+  );
+
+  return { stock: r.data, loading: r.loading, error: r.error, refresh: r.refresh, create, update, remove, adjustQty, transfer };
 }
 
 // ── movements ──────────────────────────────────────────────────────────────
