@@ -1,0 +1,16 @@
+# Minimal Supabase CLI config so `supabase db push` / `supabase db reset` work
+# locally. Most settings stay at defaults.
+
+project_id = "stock-iv"
+
+[auth]
+enabled = true
+site_url = "http://localhost:5173"
+additional_redirect_urls = ["http://localhost:5173"]
+jwt_expiry = 3600
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = false
