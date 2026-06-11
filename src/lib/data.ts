@@ -644,7 +644,21 @@ export function useReportSchedule() {
     [r],
   );
 
-  return { schedules: r.data, current, loading: r.loading, error: r.error, refresh: r.refresh, save, remove };
+  // Invoke the send-report edge function now (force), using the caller's session.
+  // Returns the function's JSON result so the UI can show per-schedule status.
+  const sendTestNow = useCallback(async () => {
+    if (!isSupabaseConfigured) {
+      throw new Error('ต้องเชื่อมต่อ Supabase ก่อน (โหมดออฟไลน์ส่งอีเมลไม่ได้)');
+    }
+    const { data, error } = await requireSupabase().functions.invoke('send-report', {
+      body: { force: true },
+    });
+    if (error) throw error;
+    await r.refresh();
+    return data as { ok: boolean; results?: any[]; error?: string };
+  }, [r]);
+
+  return { schedules: r.data, current, loading: r.loading, error: r.error, refresh: r.refresh, save, remove, sendTestNow };
 }
 
 // ── formatters (kept here so callers don't re-import data.ts vs. lib/data.ts) ──

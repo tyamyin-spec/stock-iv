@@ -26,7 +26,7 @@ export function ReportsPage() {
   const { movements } = useMovements(1000);
   const { fluids } = useFluids();
   const { prices } = usePrices();
-  const { current: schedule, save: saveSchedule, remove: removeSchedule } = useReportSchedule();
+  const { current: schedule, save: saveSchedule, remove: removeSchedule, sendTestNow } = useReportSchedule();
   const [from, setFrom] = useState('2567-05-01');
   const [to, setTo] = useState('2567-05-21');
   const [ward, setWard] = useState('all');
@@ -38,6 +38,7 @@ export function ReportsPage() {
   const [emailReport, setEmailReport] = useState<ReportId>('r1');
   const [emailFormat, setEmailFormat] = useState<'csv' | 'xlsx'>('csv');
   const [savingSchedule, setSavingSchedule] = useState(false);
+  const [testing, setTesting] = useState(false);
 
   useEffect(() => {
     if (!schedule) return;
@@ -76,6 +77,27 @@ export function ReportsPage() {
       toast({ tone: 'danger', title: 'บันทึกไม่สำเร็จ', desc: e?.message });
     } finally {
       setSavingSchedule(false);
+    }
+  };
+
+  const handleSendTest = async () => {
+    setTesting(true);
+    try {
+      const res = await sendTestNow();
+      const first = res?.results?.[0];
+      if (res?.ok && first?.sent) {
+        toast({ tone: 'success', title: 'ส่งอีเมลทดสอบแล้ว', desc: `ส่งถึง ${first.sent} อีเมล · ${first.rows} รายการ` });
+      } else if (first?.error) {
+        toast({ tone: 'danger', title: 'ส่งไม่สำเร็จ', desc: first.error });
+      } else if (res?.ok && res?.results?.length === 0) {
+        toast({ tone: 'warning', title: 'ยังไม่มีตารางส่งที่เปิดใช้งาน', desc: 'กรุณาบันทึกการตั้งค่าก่อน' });
+      } else {
+        toast({ tone: 'warning', title: 'ส่งเสร็จแต่ไม่มีผลลัพธ์', desc: JSON.stringify(res).slice(0, 120) });
+      }
+    } catch (e: any) {
+      toast({ tone: 'danger', title: 'เรียกระบบส่งอีเมลไม่สำเร็จ', desc: e?.message });
+    } finally {
+      setTesting(false);
     }
   };
 
@@ -272,6 +294,11 @@ export function ReportsPage() {
               >
                 {savingSchedule ? 'กำลังบันทึก…' : 'บันทึกการตั้งค่า'}
               </Button>
+              {schedule && (
+                <Button variant="primary" icon={<I.Refresh size={16} />} onClick={handleSendTest} disabled={testing}>
+                  {testing ? 'กำลังส่ง…' : 'ส่งทดสอบเดี๋ยวนี้'}
+                </Button>
+              )}
               {schedule && (
                 <Button variant="ghost" size="sm" onClick={handleDisableSchedule}>
                   ปิดการส่งอัตโนมัติ
