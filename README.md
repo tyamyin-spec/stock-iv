@@ -58,7 +58,48 @@ See [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql).
 - `stock` — every lot in every ward (qty, min, max, expiry, barcode)
 - `movements` — audit log (`in` / `out` / `adjust` / `discard`)
 - `profiles` — 1:1 with `auth.users`, ward affiliation + role
+- `report_schedules` — saved email-report schedules (see below)
 - Trigger: new auth user auto-creates a matching profile row
+
+## Scheduled email reports
+
+The Reports page (`รายงาน`) can export CSV / Excel / PDF on demand, and also
+schedule a report to be **emailed automatically** (daily / weekly / monthly).
+The schedule form persists to `report_schedules`; a Supabase Edge Function
+plus `pg_cron` does the actual sending.
+
+To enable automatic sending (one-time setup, in your Supabase project):
+
+```bash
+# 1. Apply the migration (creates report_schedules + cron job)
+supabase db push      # or paste supabase/migrations/0002_report_schedules.sql in the SQL editor
+
+# 2. Create a free Resend account at https://resend.com, verify a sender,
+#    then set the secrets the edge function needs:
+supabase secrets set RESEND_API_KEY=re_xxxxxxxx
+supabase secrets set REPORT_FROM="Stock IV <reports@yourdomain.com>"
+
+# 3. Deploy the edge function
+supabase functions deploy send-report
+
+# 4. Tell pg_cron where the function lives + the service-role key
+#    (run once in the SQL editor):
+#    alter database postgres set "app.settings.functions_url"   = 'https://<project-ref>.functions.supabase.co';
+#    alter database postgres set "app.settings.service_role_key" = '<service-role-key>';
+```
+
+The cron job fires daily at 18:00 Asia/Bangkok; the function itself decides
+which schedules are *due* (weekly = Monday, monthly = last day of month).
+Test it immediately without waiting for cron:
+
+```bash
+curl -X POST "https://<project-ref>.functions.supabase.co/send-report" \
+  -H "Authorization: Bearer <service-role-key>" \
+  -H "Content-Type: application/json" -d '{"force":true}'
+```
+
+Until these secrets are set the schedule is still saved and shown in the UI;
+only the sending step is inactive (`last_status` records the reason).
 
 ## Row-level security
 

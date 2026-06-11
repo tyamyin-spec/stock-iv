@@ -3,7 +3,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { isSupabaseConfigured, requireSupabase } from './supabase';
-import type { FluidType, Movement, Price, StockRow, Ward } from './db.types';
+import type { FluidType, Movement, Price, ReportSchedule, StockRow, Ward } from './db.types';
 import { useAuth } from './auth';
 
 // ── localStorage keys ──────────────────────────────────────────────────────
@@ -12,6 +12,7 @@ const LS_STOCK = 'iv_stock_v2';
 const LS_MOVEMENTS = 'iv_movements_v2';
 const LS_PRICES = 'iv_prices_v2';
 const LS_CATALOG = 'iv_fluids_v2';
+const LS_SCHEDULES = 'iv_report_schedules_v1';
 
 // ── fallback seed (kept tiny — mirrors supabase/seed.sql) ─────────────────
 const SEED_WARDS: Ward[] = [
@@ -555,6 +556,95 @@ export function usePrices() {
   }, [r]);
 
   return { prices: r.data, priceMap, loading: r.loading, error: r.error, refresh: r.refresh, setOne, reset };
+}
+
+// ── report schedules (scheduled email reports) ─────────────────────────────
+async function loadSchedules(): Promise<ReportSchedule[]> {
+  if (isSupabaseConfigured) {
+    const { data, error } = await requireSupabase()
+      .from('report_schedules')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data ?? [];
+  }
+  return lsGet<ReportSchedule[]>(LS_SCHEDULES, []);
+}
+
+export type ScheduleInput = {
+  recipients: string;
+  frequency: ReportSchedule['frequency'];
+  report_id: ReportSchedule['report_id'];
+  format: ReportSchedule['format'];
+  ward: string;
+  enabled: boolean;
+};
+
+export function useReportSchedule() {
+  const { user } = useAuth();
+  const r = useResource(loadSchedules, [] as ReportSchedule[]);
+
+  // The UI manages a single active schedule — expose the most recent one.
+  const current = r.data[0] ?? null;
+
+  const save = useCallback(
+    async (input: ScheduleInput, id?: string) => {
+      if (isSupabaseConfigured) {
+        const sb = requireSupabase();
+        if (id) {
+          const { error } = await (sb.from('report_schedules') as any).update(input).eq('id', id);
+          if (error) throw error;
+        } else {
+          const { error } = await (sb.from('report_schedules') as any).insert({
+            ...input,
+            created_by: user?.id ?? null,
+          });
+          if (error) throw error;
+        }
+      } else {
+        const all = lsGet<ReportSchedule[]>(LS_SCHEDULES, []);
+        const now = new Date().toISOString();
+        if (id) {
+          lsSet(
+            LS_SCHEDULES,
+            all.map((s) => (s.id === id ? { ...s, ...input, updated_at: now } : s)),
+          );
+        } else {
+          const row: ReportSchedule = {
+            ...input,
+            id: uuid(),
+            last_sent_at: null,
+            last_status: null,
+            created_at: now,
+            updated_at: now,
+            created_by: user?.id ?? null,
+          };
+          lsSet(LS_SCHEDULES, [row, ...all]);
+        }
+      }
+      await r.refresh();
+    },
+    [r, user],
+  );
+
+  const remove = useCallback(
+    async (id: string) => {
+      if (isSupabaseConfigured) {
+        const { error } = await requireSupabase().from('report_schedules').delete().eq('id', id);
+        if (error) throw error;
+      } else {
+        const all = lsGet<ReportSchedule[]>(LS_SCHEDULES, []);
+        lsSet(
+          LS_SCHEDULES,
+          all.filter((s) => s.id !== id),
+        );
+      }
+      await r.refresh();
+    },
+    [r],
+  );
+
+  return { schedules: r.data, current, loading: r.loading, error: r.error, refresh: r.refresh, save, remove };
 }
 
 // ── formatters (kept here so callers don't re-import data.ts vs. lib/data.ts) ──

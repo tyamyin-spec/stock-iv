@@ -64,6 +64,21 @@ export type Movement = {
   by_user: string | null;
 };
 
+export type ReportSchedule = {
+  id: string;
+  recipients: string;
+  frequency: 'daily' | 'weekly' | 'monthly';
+  report_id: 'r1' | 'r2' | 'r3' | 'r4' | 'r5' | 'r6';
+  format: 'csv' | 'xlsx';
+  ward: string;
+  enabled: boolean;
+  last_sent_at: string | null;
+  last_status: string | null;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
+};
+
 export type Profile = {
   id: string;
   display_name: string;
@@ -94,6 +109,14 @@ export type Database = {
         Update: Partial<Movement>;
       };
       profiles: { Row: Profile; Insert: Partial<Profile> & Pick<Profile, 'id'>; Update: Partial<Profile> };
+      report_schedules: {
+        Row: ReportSchedule;
+        Insert: Omit<ReportSchedule, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'last_sent_at' | 'last_status'> & {
+          id?: string;
+          created_by?: string | null;
+        };
+        Update: Partial<ReportSchedule>;
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
