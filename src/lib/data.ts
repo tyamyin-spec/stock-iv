@@ -203,10 +203,10 @@ export function useWards() {
   const create = useCallback(
     async (input: { code: string; name: string; color?: string; default_min?: number; default_max?: number; responsible?: string | null; note?: string | null }) => {
       if (isSupabaseConfigured) {
-        const { data, error } = await requireSupabase().from('wards').insert(input).select().single();
+        const { data, error } = await (requireSupabase().from('wards') as any).insert(input).select().single();
         if (error) throw error;
         await r.refresh();
-        return data;
+        return data as Ward;
       }
       const all = lsGet<Ward[]>(LS_WARDS, []);
       const now = new Date().toISOString();
@@ -231,9 +231,9 @@ export function useWards() {
   );
 
   const update = useCallback(
-    async (id: string, patch: Partial<Ward>) => {
+    async (id: string, patch: Partial<Omit<Ward, 'id' | 'created_at' | 'created_by'>>) => {
       if (isSupabaseConfigured) {
-        const { error } = await requireSupabase().from('wards').update(patch).eq('id', id);
+        const { error } = await (requireSupabase().from('wards') as any).update(patch).eq('id', id);
         if (error) throw error;
       } else {
         const all = lsGet<Ward[]>(LS_WARDS, []);
@@ -301,8 +301,7 @@ export function useStock() {
   const create = useCallback(
     async (input: StockInput) => {
       if (isSupabaseConfigured) {
-        const { data, error } = await requireSupabase()
-          .from('stock')
+        const { data, error } = await (requireSupabase().from('stock') as any)
           .insert({ ...input, created_by: user?.id ?? null })
           .select()
           .single();
@@ -327,9 +326,9 @@ export function useStock() {
   );
 
   const update = useCallback(
-    async (id: string, patch: Partial<StockRow>) => {
+    async (id: string, patch: Partial<Omit<StockRow, 'id' | 'created_at' | 'created_by'>>) => {
       if (isSupabaseConfigured) {
-        const { error } = await requireSupabase().from('stock').update(patch).eq('id', id);
+        const { error } = await (requireSupabase().from('stock') as any).update(patch).eq('id', id);
         if (error) throw error;
       } else {
         const all = lsGet<StockRow[]>(LS_STOCK, []);
@@ -397,8 +396,7 @@ export function useMovements(limit = 200) {
   const create = useCallback(
     async (input: MovementInput) => {
       if (isSupabaseConfigured) {
-        const { data, error } = await requireSupabase()
-          .from('movements')
+        const { data, error } = await (requireSupabase().from('movements') as any)
           .insert({ ...input, by_user: user?.id ?? null })
           .select()
           .single();
@@ -449,9 +447,8 @@ export function usePrices() {
   const setOne = useCallback(
     async (fluid_code: string, price: number) => {
       if (isSupabaseConfigured) {
-        const { error } = await requireSupabase()
-          .from('prices')
-          .upsert({ fluid_code, price, updated_by: user?.id ?? null }, { onConflict: 'fluid_code' });
+        const { error } = await (requireSupabase().from('prices') as any)
+          .upsert({ fluid_code, price, updated_at: new Date().toISOString(), updated_by: user?.id ?? null });
         if (error) throw error;
       } else {
         const all = lsGet<Price[]>(LS_PRICES, []);
