@@ -9,9 +9,8 @@ export function LoginPage() {
   const I = Icons;
   const { signIn, signUp } = useAuth();
   const [mode, setMode] = useState<'in' | 'up'>('in');
-  const [username, setUsername] = useState('');
+  const [name, setName] = useState('');
   const [password, setPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [info, setInfo] = useState<string | null>(null);
@@ -20,10 +19,16 @@ export function LoginPage() {
     e.preventDefault();
     setError(null);
     setInfo(null);
-    const uname = username.trim();
-    if (mode === 'up' && !/^[a-zA-Z0-9._-]{3,}$/.test(uname)) {
-      setError('ชื่อผู้ใช้ต้องเป็นภาษาอังกฤษ/ตัวเลข อย่างน้อย 3 ตัว (เช่น somchai, nurse01)');
-      return;
+    const uname = name.trim();
+    if (mode === 'up') {
+      if (uname.length < 2) {
+        setError('กรุณากรอกชื่ออย่างน้อย 2 ตัวอักษร');
+        return;
+      }
+      if (password.length < 3) {
+        setError('รหัสผ่านอย่างน้อย 3 ตัวอักษร');
+        return;
+      }
     }
     setBusy(true);
     const email = usernameToEmail(uname);
@@ -31,7 +36,8 @@ export function LoginPage() {
       const { error } = await signIn(email, password);
       if (error) setError(error);
     } else {
-      const { error } = await signUp(email, password, displayName.trim() || uname);
+      // Name doubles as the login id and the display name shown in audit.
+      const { error } = await signUp(email, password, uname);
       if (error) setError(error);
       else setInfo('สร้างบัญชีเรียบร้อย — เข้าสู่ระบบได้เลย');
     }
@@ -54,40 +60,30 @@ export function LoginPage() {
         <h1 className="auth-title">{mode === 'in' ? 'เข้าสู่ระบบ' : 'สมัครใช้งาน'}</h1>
         <p className="auth-sub muted">
           {mode === 'in'
-            ? 'ใช้ชื่อผู้ใช้และรหัสผ่านของคุณ'
-            : 'สร้างบัญชีเจ้าหน้าที่ — ชื่อที่แสดงจะปรากฏในประวัติว่าใครลงข้อมูล'}
+            ? 'ใช้ชื่อและรหัสผ่านของคุณ'
+            : 'สร้างบัญชีเจ้าหน้าที่ — ชื่อจะปรากฏในประวัติว่าใครลงข้อมูล'}
         </p>
 
         <form onSubmit={submit} className="auth-form">
-          {mode === 'up' && (
-            <Field label="ชื่อที่แสดง (ชื่อจริง-สกุล)" hint="ภาษาไทยได้ — ใช้ระบุว่าใครเป็นคนลงข้อมูล">
-              <Input
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="เช่น นภัสสร อ."
-                autoComplete="name"
-              />
-            </Field>
-          )}
-          <Field label="ชื่อผู้ใช้" required hint={mode === 'up' ? 'ภาษาอังกฤษ/ตัวเลข เช่น somchai, nurse01' : undefined}>
+          <Field label="ชื่อ" required hint={mode === 'up' ? 'ไทยหรืออังกฤษก็ได้ เช่น นภัสสร หรือ naphat' : undefined}>
             <Input
               type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="เช่น somchai"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="เช่น นภัสสร"
               autoComplete="username"
               autoCapitalize="none"
               required
             />
           </Field>
-          <Field label="รหัสผ่าน" required hint={mode === 'up' ? 'ขั้นต่ำ 6 ตัวอักษร' : undefined}>
+          <Field label="รหัสผ่าน" required hint={mode === 'up' ? 'ขั้นต่ำ 3 ตัวอักษร' : undefined}>
             <Input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               autoComplete={mode === 'in' ? 'current-password' : 'new-password'}
-              minLength={mode === 'up' ? 6 : undefined}
+              minLength={mode === 'up' ? 3 : undefined}
               required
             />
           </Field>

@@ -14,8 +14,13 @@ export function SettingsPage() {
   const { user, signOut, updatePassword } = useAuth();
   const [pwModal, setPwModal] = useState(false);
 
-  const displayName = (user?.user_metadata?.display_name as string) || user?.email?.split('@')[0] || 'ผู้ใช้';
+  const rawEmail = user?.email ?? '';
+  const isSyntheticEmail = /@stock-iv\.local$/i.test(rawEmail);
+  const displayName =
+    (user?.user_metadata?.display_name as string) || (isSyntheticEmail ? '' : rawEmail.split('@')[0]) || 'ผู้ใช้';
   const initials = displayName.slice(0, 2);
+  // Hide the internal synthetic address; only show real emails.
+  const shownEmail = isSyntheticEmail ? 'บัญชีชื่อผู้ใช้' : rawEmail;
 
   return (
     <div>
@@ -52,7 +57,7 @@ export function SettingsPage() {
               </div>
               <div>
                 <div style={{ fontSize: 16, fontWeight: 600 }}>{displayName}</div>
-                <div className="muted">{user?.email}</div>
+                <div className="muted">{shownEmail}</div>
               </div>
             </div>
             <div className="grid-12" style={{ gap: 14 }}>

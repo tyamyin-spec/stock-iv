@@ -18,13 +18,26 @@ type AuthState = {
 
 const Ctx = createContext<AuthState | null>(null);
 
-// Staff log in with a plain username (no email needed). Supabase Auth requires
-// an email, so we map "somchai" → "somchai@stock-iv.local" behind the scenes.
-// If the user types a real email (contains "@") we use it as-is.
+// Staff log in with just their name (Thai or English) — no email needed.
+// Supabase Auth requires an email and rejects non-ASCII, so we deterministically
+// hash the (normalised) name into an ASCII address like "u1a2b3c4d5e6f7a8b@stock-iv.local".
+// Same name in → same address, so login matches sign-up. The real typed name is
+// stored separately as the profile display_name. A typed real email is used as-is.
 const USERNAME_DOMAIN = 'stock-iv.local';
 export const usernameToEmail = (username: string): string => {
-  const u = username.trim().toLowerCase();
-  return u.includes('@') ? u : `${u}@${USERNAME_DOMAIN}`;
+  const raw = username.trim();
+  if (raw.includes('@')) return raw.toLowerCase(); // backward-compat: real email
+  const norm = raw.toLowerCase().replace(/\s+/g, ' ');
+  const fnv = (seed: number): string => {
+    let h = seed >>> 0;
+    for (let i = 0; i < norm.length; i++) {
+      h ^= norm.charCodeAt(i);
+      h = Math.imul(h, 0x01000193) >>> 0;
+    }
+    return h.toString(16).padStart(8, '0');
+  };
+  // Two seeds → 64-bit-ish digest, collision-safe for a small staff list.
+  return `u${fnv(0x811c9dc5)}${fnv(0x1b873593)}@${USERNAME_DOMAIN}`;
 };
 
 // Offline-mode sentinel user. Keeps page guards passing without auth wired up.

@@ -674,15 +674,17 @@ async function loadProfiles(): Promise<Profile[]> {
 export function useProfiles() {
   const r = useResource(loadProfiles, [] as Profile[]);
 
-  // Strip our synthetic "@stock-iv.local" so a bare username shows nicely.
-  const cleanName = (s: string) => s.replace(/@stock-iv\.local$/i, '');
-
   const nameOf = useCallback(
     (userId: string | null | undefined): string => {
       if (!userId) return '—';
       const p = r.data.find((x) => x.id === userId);
       if (!p) return 'ผู้ใช้';
-      return cleanName(p.display_name || p.email || 'ผู้ใช้');
+      const display = p.display_name?.trim();
+      if (display) return display;
+      // Never surface our synthetic "u<hash>@stock-iv.local" address.
+      const email = p.email ?? '';
+      if (!email || /@stock-iv\.local$/i.test(email)) return 'ผู้ใช้';
+      return email.split('@')[0];
     },
     [r.data],
   );
