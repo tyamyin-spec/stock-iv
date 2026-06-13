@@ -112,9 +112,9 @@ export function ReportsPage() {
     }
   };
 
-  const handleExport = (id: ReportId) => {
+  const handleExport = async (id: ReportId) => {
     try {
-      const data = exportReport(id, format, { stock, movements, wards, fluids, prices, from, to, ward });
+      const data = await exportReport(id, format, { stock, movements, wards, fluids, prices, from, to, ward }, { print: true });
       if (data.rows.length === 0) {
         toast({ tone: 'warning', title: 'ไม่มีข้อมูลในช่วงที่เลือก', desc: data.title });
       } else {
@@ -129,9 +129,9 @@ export function ReportsPage() {
     }
   };
 
-  const handlePreview = (id: ReportId) => {
+  const handlePreview = async (id: ReportId) => {
     try {
-      const data = exportReport(id, 'pdf', { stock, movements, wards, fluids, prices, from, to, ward });
+      const data = await exportReport(id, 'pdf', { stock, movements, wards, fluids, prices, from, to, ward }, { print: false });
       if (data.rows.length === 0) {
         toast({ tone: 'warning', title: 'ไม่มีข้อมูลในช่วงที่เลือก', desc: data.title });
       }

@@ -231,20 +231,28 @@ function tableHtml(data: ReportData): string {
   return `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
 }
 
-function downloadXls(data: ReportData, filename: string) {
-  const html =
-    `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">` +
-    `<head><meta charset="utf-8"/>` +
-    `<style>table{border-collapse:collapse}th,td{border:1px solid #ccc;padding:4px 8px;font-family:'Tahoma',sans-serif;font-size:11pt}th{background:#1E6FEB;color:#fff}</style>` +
-    `</head><body>` +
-    `<h3>${esc(data.title)}</h3><p>${esc(data.subtitle)}</p>` +
-    tableHtml(data) +
-    `</body></html>`;
-  const blob = new Blob(['﻿' + html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+// Real .xlsx via SheetJS, loaded on demand so it stays out of the initial bundle.
+async function downloadXlsx(data: ReportData, filename: string) {
+  const XLSX = await import('xlsx');
+  const ws = XLSX.utils.aoa_to_sheet([data.headers, ...data.rows]);
+  // Roomy column widths based on content length.
+  ws['!cols'] = data.headers.map((h, i) => {
+    const max = Math.max(String(h).length, ...data.rows.map((r) => String(r[i] ?? '').length));
+    return { wch: Math.min(40, Math.max(10, max + 2)) };
+  });
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Report');
+  const out = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+  const blob = new Blob([out], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
   triggerDownload(blob, filename);
 }
 
-function exportPdf(data: ReportData) {
+// PDF via the browser's own renderer (perfect Thai, no font embedding). When
+// autoPrint is set, the print → "Save as PDF" dialog opens automatically so an
+// Export click is effectively a one-step PDF download; preview just shows it.
+function exportPdf(data: ReportData, autoPrint: boolean) {
   const win = window.open('', '_blank');
   if (!win) {
     throw new Error('เบราว์เซอร์บล็อกหน้าต่างใหม่ — กรุณาอนุญาต popup แล้วลองอีกครั้ง');
@@ -271,18 +279,25 @@ function exportPdf(data: ReportData) {
     <p class="sub">${esc(data.subtitle)}</p>
     <p class="gen">สร้างเมื่อ ${esc(generatedAt)} · ${data.rows.length} รายการ</p>
     ${tableHtml(data)}
+    ${autoPrint ? '<script>window.onload=function(){setTimeout(function(){window.print()},400)}<\/script>' : ''}
     </body></html>`);
   win.document.close();
 }
 
 // ── public API ───────────────────────────────────────────────────────────────
 
-export function exportReport(id: ReportId, format: ReportFormat, ctx: BuildCtx): ReportData {
+export async function exportReport(
+  id: ReportId,
+  format: ReportFormat,
+  ctx: BuildCtx,
+  opts?: { print?: boolean },
+): Promise<ReportData> {
   const data = buildReport(id, ctx);
   const stamp = `${ctx.from}_${ctx.to}`.replace(/[^\d_]/g, '');
   const base = `${id}_${stamp}`;
+  if (data.rows.length === 0) return data; // nothing to write; caller shows a notice
   if (format === 'csv') downloadCsv(data, `${base}.csv`);
-  else if (format === 'xlsx') downloadXls(data, `${base}.xls`);
-  else exportPdf(data);
+  else if (format === 'xlsx') await downloadXlsx(data, `${base}.xlsx`);
+  else exportPdf(data, opts?.print ?? false);
   return data;
 }
