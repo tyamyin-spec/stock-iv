@@ -16,6 +16,7 @@
 //        -H "Content-Type: application/json" -d '{"force":true}'
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.46.1';
+import * as XLSX from 'https://esm.sh/xlsx@0.18.5';
 
 type Frequency = 'daily' | 'weekly' | 'monthly';
 type ReportId = 'r1' | 'r2' | 'r3' | 'r4' | 'r5' | 'r6';
@@ -155,14 +156,13 @@ const csvCell = (v: unknown) => {
 function toCsv(r: Report): string {
   return '﻿' + [r.headers, ...r.rows].map((row) => row.map(csvCell).join(',')).join('\r\n');
 }
-const esc = (v: unknown) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-function toXls(r: Report): string {
-  const head = r.headers.map((h) => `<th>${esc(h)}</th>`).join('');
-  const body = r.rows.map((row) => `<tr>${row.map((c) => `<td>${esc(c)}</td>`).join('')}</tr>`).join('');
-  return (
-    `﻿<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"/></head><body>` +
-    `<h3>${esc(r.title)}</h3><table border="1"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></body></html>`
-  );
+// Real .xlsx (OOXML) via SheetJS — opens and previews cleanly everywhere,
+// unlike the old HTML-table-as-.xls trick. Returns base64 directly.
+function toXlsxBase64(r: Report): string {
+  const ws = XLSX.utils.aoa_to_sheet([r.headers, ...r.rows]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Report');
+  return XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
 }
 function base64(str: string): string {
   const bytes = new TextEncoder().encode(str);
@@ -216,8 +216,8 @@ Deno.serve(async (req) => {
         const stamp = now.toISOString().slice(0, 10);
         const isXls = s.format === 'xlsx';
         const attachment = {
-          filename: `${s.report_id}_${stamp}.${isXls ? 'xls' : 'csv'}`,
-          content: base64(isXls ? toXls(report) : toCsv(report)),
+          filename: `${s.report_id}_${stamp}.${isXls ? 'xlsx' : 'csv'}`,
+          content: isXls ? toXlsxBase64(report) : base64(toCsv(report)),
         };
         const recipients = s.recipients.split(',').map((x: string) => x.trim()).filter(Boolean);
         const html =
