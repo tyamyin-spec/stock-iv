@@ -15,7 +15,7 @@ import {
   SectionTitle,
   useToast,
 } from '../ui';
-import { useMovements, useStock, useWards, fmtNum } from '../lib/data';
+import { useMovements, useProfiles, useStock, useWards, fmtNum } from '../lib/data';
 import type { Ward } from '../lib/db.types';
 
 const SWATCHES = ['#1E6FEB', '#0EA5E9', '#22C5B0', '#16A34A', '#6366F1', '#F59E0B', '#F43F5E', '#7C3AED', '#64748B'];
@@ -36,6 +36,7 @@ export function WardsPage() {
   const { wards, loading, create, update, remove } = useWards();
   const { stock } = useStock();
   const { movements } = useMovements(50);
+  const { nameOf } = useProfiles();
 
   const [editing, setEditing] = useState<Ward | 'new' | null>(null);
   const [confirmDel, setConfirmDel] = useState<Ward | null>(null);
@@ -163,6 +164,7 @@ export function WardsPage() {
                   <th>ชนิด</th>
                   <th>ประเภท</th>
                   <th className="num">จำนวน</th>
+                  <th>โดย</th>
                   <th>หมายเหตุ</th>
                 </tr>
               </thead>
@@ -192,6 +194,7 @@ export function WardsPage() {
                         {m.qty > 0 ? '+' : ''}
                         {m.qty}
                       </td>
+                      <td style={{ fontSize: 12.5 }}>{nameOf(m.by_user)}</td>
                       <td className="muted" style={{ fontSize: 12 }}>
                         {m.note ?? ''}
                       </td>

@@ -3,7 +3,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { isSupabaseConfigured, requireSupabase } from './supabase';
-import type { FluidType, Movement, Price, ReportSchedule, StockRow, Ward } from './db.types';
+import type { FluidType, Movement, Price, Profile, ReportSchedule, StockRow, Ward } from './db.types';
 import { useAuth } from './auth';
 
 // ── localStorage keys ──────────────────────────────────────────────────────
@@ -659,6 +659,35 @@ export function useReportSchedule() {
   }, [r]);
 
   return { schedules: r.data, current, loading: r.loading, error: r.error, refresh: r.refresh, save, remove, sendTestNow };
+}
+
+// ── profiles (who-is-who: maps user id → display name) ─────────────────────
+async function loadProfiles(): Promise<Profile[]> {
+  if (isSupabaseConfigured) {
+    const { data, error } = await requireSupabase().from('profiles').select('*');
+    if (error) throw error;
+    return data ?? [];
+  }
+  return [];
+}
+
+export function useProfiles() {
+  const r = useResource(loadProfiles, [] as Profile[]);
+
+  // Strip our synthetic "@stock-iv.local" so a bare username shows nicely.
+  const cleanName = (s: string) => s.replace(/@stock-iv\.local$/i, '');
+
+  const nameOf = useCallback(
+    (userId: string | null | undefined): string => {
+      if (!userId) return '—';
+      const p = r.data.find((x) => x.id === userId);
+      if (!p) return 'ผู้ใช้';
+      return cleanName(p.display_name || p.email || 'ผู้ใช้');
+    },
+    [r.data],
+  );
+
+  return { profiles: r.data, nameOf, loading: r.loading, refresh: r.refresh };
 }
 
 // ── formatters (kept here so callers don't re-import data.ts vs. lib/data.ts) ──

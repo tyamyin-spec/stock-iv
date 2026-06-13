@@ -18,6 +18,15 @@ type AuthState = {
 
 const Ctx = createContext<AuthState | null>(null);
 
+// Staff log in with a plain username (no email needed). Supabase Auth requires
+// an email, so we map "somchai" → "somchai@stock-iv.local" behind the scenes.
+// If the user types a real email (contains "@") we use it as-is.
+const USERNAME_DOMAIN = 'stock-iv.local';
+export const usernameToEmail = (username: string): string => {
+  const u = username.trim().toLowerCase();
+  return u.includes('@') ? u : `${u}@${USERNAME_DOMAIN}`;
+};
+
 // Offline-mode sentinel user. Keeps page guards passing without auth wired up.
 const DEV_USER = {
   id: 'dev-local',
