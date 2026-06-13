@@ -15,7 +15,7 @@ export function SettingsPage() {
   const [pwModal, setPwModal] = useState(false);
 
   const rawEmail = user?.email ?? '';
-  const isSyntheticEmail = /@stock-iv\.local$/i.test(rawEmail);
+  const isSyntheticEmail = /^u[0-9a-f]{16}@stock-iv\.com$/i.test(rawEmail);
   const displayName =
     (user?.user_metadata?.display_name as string) || (isSyntheticEmail ? '' : rawEmail.split('@')[0]) || 'ผู้ใช้';
   const initials = displayName.slice(0, 2);

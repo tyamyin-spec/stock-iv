@@ -23,7 +23,8 @@ const Ctx = createContext<AuthState | null>(null);
 // hash the (normalised) name into an ASCII address like "u1a2b3c4d5e6f7a8b@stock-iv.local".
 // Same name in → same address, so login matches sign-up. The real typed name is
 // stored separately as the profile display_name. A typed real email is used as-is.
-const USERNAME_DOMAIN = 'stock-iv.local';
+// Must be a normal TLD — Supabase rejects reserved domains like ".local".
+const USERNAME_DOMAIN = 'stock-iv.com';
 export const usernameToEmail = (username: string): string => {
   const raw = username.trim();
   if (raw.includes('@')) return raw.toLowerCase(); // backward-compat: real email

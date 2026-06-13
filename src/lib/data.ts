@@ -681,9 +681,9 @@ export function useProfiles() {
       if (!p) return 'ผู้ใช้';
       const display = p.display_name?.trim();
       if (display) return display;
-      // Never surface our synthetic "u<hash>@stock-iv.local" address.
+      // Never surface our synthetic "u<hash>@stock-iv.com" address.
       const email = p.email ?? '';
-      if (!email || /@stock-iv\.local$/i.test(email)) return 'ผู้ใช้';
+      if (!email || /^u[0-9a-f]{16}@stock-iv\.com$/i.test(email)) return 'ผู้ใช้';
       return email.split('@')[0];
     },
     [r.data],
