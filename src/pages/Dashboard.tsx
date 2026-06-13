@@ -24,6 +24,8 @@ const WARD_TONE: Record<string, Tone> = {
   icu: 'amber',
   er: 'rose',
 };
+// Fallback palette so any ward (incl. custom ones) gets a distinct colour.
+const WARD_TONE_CYCLE: Tone[] = ['info', 'teal', 'indigo', 'amber', 'rose'];
 
 export function DashboardPage({
   onNavigate,
@@ -155,11 +157,11 @@ export function DashboardPage({
             unit="ขวด"
             highlight
           />
-          {wards.slice(0, 3).map((w, i) => (
+          {wards.map((w, i) => (
             <KpiHero
               key={w.id}
               idx={i + 1}
-              tone={WARD_TONE[w.code] || 'info'}
+              tone={WARD_TONE[w.code] || WARD_TONE_CYCLE[i % WARD_TONE_CYCLE.length]}
               icon={w.code === 'semi-sx' ? <I.Building size={28} /> : <BedIcon size={28} />}
               label={w.name}
               value={wardTotals[w.id] ?? 0}
