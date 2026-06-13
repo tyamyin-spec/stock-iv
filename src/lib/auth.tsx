@@ -40,6 +40,14 @@ export const usernameToEmail = (username: string): string => {
   return `u${fnv(0x811c9dc5)}${fnv(0x1b873593)}@${USERNAME_DOMAIN}`;
 };
 
+// Supabase enforces a 6-char minimum password. To let staff use short (3+) PINs,
+// we deterministically pad anything shorter than 6 with a constant filler — applied
+// identically at sign-up and login so they always match. Passwords already ≥6 are
+// untouched. (Effective strength = the chars actually typed; fine for internal use.)
+const PW_FILLER = 'iv2580';
+export const toAuthPassword = (p: string): string =>
+  p.length >= 6 ? p : p + PW_FILLER.slice(0, 6 - p.length);
+
 // Offline-mode sentinel user. Keeps page guards passing without auth wired up.
 const DEV_USER = {
   id: 'dev-local',
@@ -73,7 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback(async (email: string, password: string) => {
     if (!supabase) return { error: 'Supabase is not configured.' };
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({ email, password: toAuthPassword(password) });
     return { error: error?.message ?? null };
   }, []);
 
@@ -81,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!supabase) return { error: 'Supabase is not configured.' };
     const { error } = await supabase.auth.signUp({
       email,
-      password,
+      password: toAuthPassword(password),
       options: { data: { display_name: displayName } },
     });
     return { error: error?.message ?? null };
@@ -94,7 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updatePassword = useCallback(async (newPassword: string) => {
     if (!supabase) return { error: 'Supabase is not configured.' };
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    const { error } = await supabase.auth.updateUser({ password: toAuthPassword(newPassword) });
     return { error: error?.message ?? null };
   }, []);
 
