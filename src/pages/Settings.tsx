@@ -16,11 +16,17 @@ export function SettingsPage() {
 
   const rawEmail = user?.email ?? '';
   const isSyntheticEmail = /^u[0-9a-f]{16}@stock-iv\.com$/i.test(rawEmail);
-  const displayName =
-    (user?.user_metadata?.display_name as string) || (isSyntheticEmail ? '' : rawEmail.split('@')[0]) || 'ผู้ใช้';
+  const meta = (user?.user_metadata ?? {}) as { display_name?: string; position?: string; ward_id?: string };
+  const displayName = meta.display_name || (isSyntheticEmail ? '' : rawEmail.split('@')[0]) || 'ผู้ใช้';
   const initials = displayName.slice(0, 2);
-  // Hide the internal synthetic address; only show real emails.
-  const shownEmail = isSyntheticEmail ? 'บัญชีชื่อผู้ใช้' : rawEmail;
+  const position = meta.position ?? '';
+  const wardName = wards.find((w) => w.id === meta.ward_id)?.name ?? '';
+  const POSITION_LABELS: Record<string, string> = {
+    NA: 'NA - ผู้ช่วยพยาบาล',
+    PN: 'PN - พยาบาลเทคนิค',
+    RN: 'RN - พยาบาลวิชาชีพ',
+  };
+  const roleLine = [position, wardName].filter(Boolean).join(' · ') || 'เจ้าหน้าที่';
 
   return (
     <div>
@@ -57,29 +63,23 @@ export function SettingsPage() {
               </div>
               <div>
                 <div style={{ fontSize: 16, fontWeight: 600 }}>{displayName}</div>
-                <div className="muted">{shownEmail}</div>
+                <div className="muted">{roleLine}</div>
               </div>
             </div>
             <div className="grid-12" style={{ gap: 14 }}>
               <div style={{ gridColumn: 'span 6' }}>
                 <Field label="ชื่อที่แสดง">
-                  <Input defaultValue={displayName} />
+                  <Input defaultValue={displayName} disabled />
                 </Field>
               </div>
               <div style={{ gridColumn: 'span 6' }}>
-                <Field label="อีเมล">
-                  <Input defaultValue={user?.email ?? ''} disabled />
+                <Field label="ตำแหน่ง">
+                  <Input defaultValue={POSITION_LABELS[position] ?? position ?? '—'} disabled />
                 </Field>
               </div>
               <div style={{ gridColumn: 'span 12' }}>
                 <Field label="วอร์ดหลัก">
-                  <Select defaultValue={wards[0]?.id ?? ''}>
-                    {wards.map((w) => (
-                      <option key={w.id} value={w.id}>
-                        {w.name}
-                      </option>
-                    ))}
-                  </Select>
+                  <Input defaultValue={wardName || '—'} disabled />
                 </Field>
               </div>
             </div>

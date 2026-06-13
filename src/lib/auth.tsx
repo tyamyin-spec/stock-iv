@@ -11,7 +11,12 @@ type AuthState = {
   session: Session | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUp: (email: string, password: string, displayName: string) => Promise<{ error: string | null }>;
+  signUp: (
+    email: string,
+    password: string,
+    displayName: string,
+    extra?: { ward_id?: string | null; position?: string | null },
+  ) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   updatePassword: (newPassword: string) => Promise<{ error: string | null }>;
 };
@@ -86,15 +91,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null };
   }, []);
 
-  const signUp = useCallback(async (email: string, password: string, displayName: string) => {
-    if (!supabase) return { error: 'Supabase is not configured.' };
-    const { error } = await supabase.auth.signUp({
-      email,
-      password: toAuthPassword(password),
-      options: { data: { display_name: displayName } },
-    });
-    return { error: error?.message ?? null };
-  }, []);
+  const signUp = useCallback(
+    async (
+      email: string,
+      password: string,
+      displayName: string,
+      extra?: { ward_id?: string | null; position?: string | null },
+    ) => {
+      if (!supabase) return { error: 'Supabase is not configured.' };
+      const { error } = await supabase.auth.signUp({
+        email,
+        password: toAuthPassword(password),
+        options: {
+          data: {
+            display_name: displayName,
+            ward_id: extra?.ward_id ?? null,
+            position: extra?.position ?? null,
+          },
+        },
+      });
+      return { error: error?.message ?? null };
+    },
+    [],
+  );
 
   const signOut = useCallback(async () => {
     if (!supabase) return;

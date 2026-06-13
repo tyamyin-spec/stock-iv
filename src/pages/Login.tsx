@@ -2,15 +2,25 @@
 
 import { useState } from 'react';
 import { Icons } from '../icons';
-import { Button, Field, Input } from '../ui';
+import { Button, Field, Input, Select } from '../ui';
 import { useAuth, usernameToEmail } from '../lib/auth';
+import { useWards } from '../lib/data';
+
+const POSITIONS: { v: string; l: string }[] = [
+  { v: 'NA', l: 'NA - ผู้ช่วยพยาบาล' },
+  { v: 'PN', l: 'PN - พยาบาลเทคนิค' },
+  { v: 'RN', l: 'RN - พยาบาลวิชาชีพ' },
+];
 
 export function LoginPage() {
   const I = Icons;
   const { signIn, signUp } = useAuth();
+  const { wards } = useWards();
   const [mode, setMode] = useState<'in' | 'up'>('in');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
+  const [wardId, setWardId] = useState('');
+  const [position, setPosition] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [info, setInfo] = useState<string | null>(null);
@@ -29,6 +39,14 @@ export function LoginPage() {
         setError('รหัสผ่านอย่างน้อย 3 ตัวอักษร');
         return;
       }
+      if (!position) {
+        setError('กรุณาเลือกตำแหน่ง');
+        return;
+      }
+      if (!wardId) {
+        setError('กรุณาเลือกวอร์ดหลัก');
+        return;
+      }
     }
     setBusy(true);
     const email = usernameToEmail(uname);
@@ -37,7 +55,7 @@ export function LoginPage() {
       if (error) setError(error);
     } else {
       // Name doubles as the login id and the display name shown in audit.
-      const { error } = await signUp(email, password, uname);
+      const { error } = await signUp(email, password, uname, { ward_id: wardId, position });
       if (error) setError(error);
       else setInfo('สร้างบัญชีเรียบร้อย — เข้าสู่ระบบได้เลย');
     }
@@ -76,6 +94,30 @@ export function LoginPage() {
               required
             />
           </Field>
+          {mode === 'up' && (
+            <>
+              <Field label="ตำแหน่ง" required>
+                <Select value={position} onChange={(e) => setPosition(e.target.value)} required>
+                  <option value="">เลือกตำแหน่ง</option>
+                  {POSITIONS.map((p) => (
+                    <option key={p.v} value={p.v}>
+                      {p.l}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field label="วอร์ดหลัก" required>
+                <Select value={wardId} onChange={(e) => setWardId(e.target.value)} required>
+                  <option value="">เลือกวอร์ด</option>
+                  {wards.map((w) => (
+                    <option key={w.id} value={w.id}>
+                      {w.name}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            </>
+          )}
           <Field label="รหัสผ่าน" required hint={mode === 'up' ? 'ขั้นต่ำ 3 ตัวอักษร' : undefined}>
             <Input
               type="password"

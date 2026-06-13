@@ -3,6 +3,8 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Icons, type IconKey } from './icons';
 import { Button, IconButton, Input } from './ui';
+import { useAuth } from './lib/auth';
+import { useWards } from './lib/data';
 
 export type PageId = 'dashboard' | 'stock' | 'add' | 'expiry' | 'reports' | 'value' | 'wards' | 'settings';
 
@@ -29,6 +31,13 @@ export function Sidebar({
   onClose?: () => void;
 }) {
   const I = Icons;
+  const { user } = useAuth();
+  const { wards } = useWards();
+  const meta = (user?.user_metadata ?? {}) as { display_name?: string; position?: string; ward_id?: string };
+  const displayName = meta.display_name || user?.email?.split('@')[0] || 'ผู้ใช้งาน';
+  const wardName = wards.find((w) => w.id === meta.ward_id)?.name ?? '';
+  const roleLine = [meta.position, wardName].filter(Boolean).join(' · ') || 'เข้าสู่ระบบแล้ว';
+  const initials = displayName.slice(0, 2);
   return (
     <>
       {open && <div className="sidebar-scrim" onClick={onClose} aria-hidden="true" />}
@@ -88,10 +97,10 @@ export function Sidebar({
 
         <div className="side-foot">
           <div className="side-user" role="button" tabIndex={0}>
-            <div className="avatar">นภ</div>
+            <div className="avatar">{initials}</div>
             <div className="who">
-              <div className="name">ผู้ใช้งาน</div>
-              <div className="role">เข้าสู่ระบบแล้ว</div>
+              <div className="name">{displayName}</div>
+              <div className="role">{roleLine}</div>
             </div>
           </div>
         </div>
