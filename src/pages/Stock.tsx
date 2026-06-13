@@ -22,7 +22,7 @@ import type { StockRow, Ward } from '../lib/db.types';
 export function StockPage({ onOpenAdd, onOpenScan }: { onOpenAdd: () => void; onOpenScan: () => void }) {
   const I = Icons;
   const toast = useToast();
-  const { stock, loading, update, remove, transfer } = useStock();
+  const { stock, loading, update, remove, transfer, dispense } = useStock();
   const { wards } = useWards();
   const { fluids } = useFluids();
 
@@ -37,6 +37,7 @@ export function StockPage({ onOpenAdd, onOpenScan }: { onOpenAdd: () => void; on
   const [confirm, setConfirm] = useState<{ ids: string[]; desc: string } | null>(null);
   const [editing, setEditing] = useState<StockRow | null>(null);
   const [transfering, setTransfering] = useState<StockRow | null>(null);
+  const [dispensing, setDispensing] = useState<StockRow | null>(null);
   const [page, setPage] = useState(1);
   const perPage = 8;
 
@@ -320,6 +321,7 @@ export function StockPage({ onOpenAdd, onOpenScan }: { onOpenAdd: () => void; on
                       </td>
                       <td>
                         <div className="actions">
+                          <IconButton icon={<I.Flask size={16} />} label="เบิกใช้" onClick={() => setDispensing(x)} />
                           <IconButton icon={<I.ArrowRight size={16} />} label="โอนย้าย" onClick={() => setTransfering(x)} />
                           <IconButton icon={<I.Edit size={16} />} label="แก้ไข" onClick={() => setEditing(x)} />
                           <IconButton
@@ -404,6 +406,26 @@ export function StockPage({ onOpenAdd, onOpenScan }: { onOpenAdd: () => void; on
               toast({ tone: 'success', title: 'โอนย้ายสำเร็จ', desc: `โอน ${input.qty} ขวดไปยัง ${wards.find((w) => w.id === input.to_ward_id)?.name || 'ward'}` });
             } catch (e: any) {
               toast({ tone: 'danger', title: 'โอนย้ายไม่สำเร็จ', desc: e?.message });
+            }
+          }}
+        />
+      )}
+
+      {dispensing && (
+        <DispenseStockModal
+          item={dispensing}
+          stock={stock}
+          wards={wards}
+          fluids={fluids}
+          onClose={() => setDispensing(null)}
+          onDispense={async (input) => {
+            try {
+              const breakdown = await dispense(input);
+              setDispensing(null);
+              const lots = breakdown.map((b) => `${b.lot}×${b.take}`).join(', ');
+              toast({ tone: 'success', title: 'บันทึกเบิกใช้แล้ว', desc: `${input.qty} ขวด (${lots})` });
+            } catch (e: any) {
+              toast({ tone: 'danger', title: 'เบิกใช้ไม่สำเร็จ', desc: e?.message });
             }
           }}
         />
@@ -590,6 +612,157 @@ function TransferStockModal({
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="เช่น ส่วนเกินหลังตรวจสอบ"
+          />
+        </Field>
+      </div>
+    </Modal>
+  );
+}
+
+function DispenseStockModal({
+  item,
+  stock,
+  wards,
+  fluids,
+  onClose,
+  onDispense,
+}: {
+  item: StockRow;
+  stock: StockRow[];
+  wards: Ward[];
+  fluids: any[];
+  onClose: () => void;
+  onDispense: (input: { ward_id: string; fluid_code: string; qty: number; note?: string }) => void | Promise<void>;
+}) {
+  const [qty, setQty] = useState('1');
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const ward = wards.find((w) => w.id === item.ward_id);
+  const fluidName = fluids.find((f) => f.code === item.fluid_code)?.name || item.fluid_code;
+
+  // All lots of this fluid in this ward, soonest-expiry first (FEFO).
+  const lots = useMemo(
+    () =>
+      stock
+        .filter((s) => s.ward_id === item.ward_id && s.fluid_code === item.fluid_code && s.qty > 0)
+        .sort((a, b) => a.expiry.localeCompare(b.expiry)),
+    [stock, item],
+  );
+  const available = lots.reduce((sum, s) => sum + s.qty, 0);
+  const qtyNum = Math.max(1, Math.min(available || 1, parseInt(qty) || 1));
+
+  // Live preview of which lots get deducted.
+  const breakdown = useMemo(() => {
+    let remaining = qtyNum;
+    const out: { row: StockRow; take: number }[] = [];
+    for (const lot of lots) {
+      if (remaining <= 0) break;
+      const take = Math.min(lot.qty, remaining);
+      out.push({ row: lot, take });
+      remaining -= take;
+    }
+    return out;
+  }, [lots, qtyNum]);
+
+  const canDispense = available > 0 && qtyNum > 0 && qtyNum <= available;
+
+  return (
+    <Modal
+      open={true}
+      onClose={onClose}
+      title="เบิกใช้สารน้ำ"
+      subtitle={`${fluidName} · ${ward?.name || ''}`}
+      size="md"
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose} disabled={busy}>
+            ยกเลิก
+          </Button>
+          <Button
+            variant="primary"
+            disabled={!canDispense || busy}
+            onClick={async () => {
+              setBusy(true);
+              try {
+                await onDispense({ ward_id: item.ward_id, fluid_code: item.fluid_code, qty: qtyNum, note: note || undefined });
+                onClose();
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            {busy ? 'กำลังบันทึก…' : 'ยืนยันเบิกใช้'}
+          </Button>
+        </>
+      }
+    >
+      <div className="col" style={{ gap: 14 }}>
+        <div className="card-info" style={{ background: 'var(--surface-2)', padding: 12, borderRadius: 8 }}>
+          <div style={{ fontSize: 12, color: 'var(--text-3)' }}>เบิกใช้จาก</div>
+          <div style={{ fontSize: 14, fontWeight: 600, marginTop: 4 }}>{fluidName}</div>
+          <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>
+            {ward?.name} · คงเหลือรวม {available} ขวด · {lots.length} lot
+          </div>
+        </div>
+
+        <Field label="จำนวนที่ใช้ (ขวด)" required>
+          <Input type="number" min={1} max={available} value={qty} onChange={(e) => setQty(e.target.value)} placeholder="1" />
+          <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>
+            สูงสุด {available} ขวด
+          </div>
+        </Field>
+
+        {available > 0 && (
+          <div>
+            <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 6 }}>
+              ระบบหักจาก lot ใกล้หมดอายุก่อน (FEFO)
+            </div>
+            <div className="col" style={{ gap: 6 }}>
+              {breakdown.map(({ row, take }) => {
+                const days = daysFromToday(row.expiry);
+                const near = days <= 90;
+                return (
+                  <div
+                    key={row.id}
+                    className="row"
+                    style={{
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      gap: 8,
+                      padding: '8px 10px',
+                      borderRadius: 8,
+                      background: near ? 'var(--warning-bg, #FFF7ED)' : 'var(--surface-2)',
+                      border: near ? '1px solid var(--warning-border, #FED7AA)' : '1px solid var(--border)',
+                    }}
+                  >
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 13 }}>Lot {row.lot}</div>
+                      <div style={{ fontSize: 11, color: near ? '#B45309' : 'var(--text-3)' }}>
+                        หมดอายุ {formatThaiDate(row.expiry)}
+                        {days < 0 ? ' · หมดอายุแล้ว' : near ? ' · ใกล้หมดอายุ' : ''}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      <div style={{ fontSize: 13, fontWeight: 600 }}>หัก {take}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-3)' }}>
+                        เหลือ {row.qty} → {row.qty - take}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <Field label="หมายเหตุ" hint="ไม่บังคับ">
+          <textarea
+            className="input"
+            rows={2}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="เช่น ใช้ห้องผ่าตัด, เวรเช้า"
           />
         </Field>
       </div>

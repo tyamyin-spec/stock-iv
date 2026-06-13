@@ -448,7 +448,67 @@ export function useStock() {
     [create, update, adjustQty, r, user],
   );
 
-  return { stock: r.data, loading: r.loading, error: r.error, refresh: r.refresh, create, update, remove, adjustQty, transfer };
+  // Dispense (use on patients) from a ward's stock of one fluid. FEFO: deduct
+  // from the soonest-expiring lots first to minimise expiry waste. Records one
+  // 'out' movement per lot touched. No patient data captured.
+  const dispense = useCallback(
+    async (input: { ward_id: string; fluid_code: string; qty: number; note?: string }) => {
+      const all = await loadStockRows();
+      const lots = all
+        .filter((s) => s.ward_id === input.ward_id && s.fluid_code === input.fluid_code && s.qty > 0)
+        .sort((a, b) => a.expiry.localeCompare(b.expiry)); // earliest expiry first
+      const available = lots.reduce((sum, s) => sum + s.qty, 0);
+      if (input.qty <= 0) throw new Error('จำนวนต้องมากกว่า 0');
+      if (available < input.qty) throw new Error(`คงเหลือไม่พอ — มี ${available} ขวด`);
+
+      const recordOut = async (stockId: string, take: number, lotLabel: string) => {
+        const note = `เบิกใช้ ${take} (lot ${lotLabel})${input.note ? ` · ${input.note}` : ''}`;
+        if (isSupabaseConfigured) {
+          const { error } = await (requireSupabase().from('movements') as any).insert({
+            stock_id: stockId,
+            fluid_code: input.fluid_code,
+            ward_id: input.ward_id,
+            kind: 'out',
+            qty: -take,
+            note,
+            by_user: user?.id ?? null,
+          });
+          if (error) throw error;
+        } else {
+          const allM = lsGet<Movement[]>(LS_MOVEMENTS, []);
+          const m: Movement = {
+            id: uuid(),
+            stock_id: stockId,
+            fluid_code: input.fluid_code,
+            ward_id: input.ward_id,
+            kind: 'out',
+            qty: -take,
+            note,
+            occurred_at: new Date().toISOString(),
+            by_user: user?.id ?? null,
+          };
+          lsSet(LS_MOVEMENTS, [m, ...allM]);
+        }
+      };
+
+      let remaining = input.qty;
+      const breakdown: { lot: string; take: number }[] = [];
+      for (const lot of lots) {
+        if (remaining <= 0) break;
+        const take = Math.min(lot.qty, remaining);
+        await adjustQty(lot.id, -take);
+        await recordOut(lot.id, take, lot.lot);
+        breakdown.push({ lot: lot.lot, take });
+        remaining -= take;
+      }
+
+      await r.refresh();
+      return breakdown;
+    },
+    [adjustQty, r, user],
+  );
+
+  return { stock: r.data, loading: r.loading, error: r.error, refresh: r.refresh, create, update, remove, adjustQty, transfer, dispense };
 }
 
 // ── movements ──────────────────────────────────────────────────────────────
