@@ -8,6 +8,7 @@ import { useAuth } from '../lib/auth';
 import { useSettings, EXPIRY_WARN_OPTIONS } from '../lib/settings';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { backupCounts, downloadBackup, downloadBackupXlsx, emailBackup } from '../lib/backup';
+import { sendLineTest } from '../lib/notify';
 
 export function SettingsPage() {
   const I = Icons;
@@ -18,6 +19,21 @@ export function SettingsPage() {
   const [backupBusy, setBackupBusy] = useState(false);
   const [emailBusy, setEmailBusy] = useState(false);
   const [backupEmail, setBackupEmail] = useState('');
+  const [lineBusy, setLineBusy] = useState(false);
+
+  const handleLineTest = async () => {
+    setLineBusy(true);
+    try {
+      const res = await sendLineTest();
+      if (res?.ok && res?.skipped) toast({ tone: 'success', title: 'เชื่อมต่อ LINE สำเร็จ', desc: 'ไม่มีรายการเตือนตอนนี้' });
+      else if (res?.ok) toast({ tone: 'success', title: 'ส่งแจ้งเตือน LINE แล้ว', desc: `ของขาด ${res.low ?? 0} · ใกล้หมดอายุ ${res.expiring ?? 0}` });
+      else toast({ tone: 'danger', title: 'ส่ง LINE ไม่สำเร็จ', desc: res?.error });
+    } catch (e: any) {
+      toast({ tone: 'danger', title: 'ส่ง LINE ไม่สำเร็จ', desc: e?.message });
+    } finally {
+      setLineBusy(false);
+    }
+  };
 
   const handleDownloadBackup = async (kind: 'json' | 'xlsx') => {
     setBackupBusy(true);
@@ -169,7 +185,24 @@ export function SettingsPage() {
               <SettingToggle title="แจ้งเตือนเมื่อต่ำกว่าขั้นต่ำ" desc="ส่งทันทีเมื่อสารน้ำใดต่ำกว่ายอด" defaultChecked />
               <SettingToggle title="แจ้งเตือนใกล้หมดอายุ" desc="ทุกเช้า 08:00 น." defaultChecked />
               <SettingToggle title="สรุปประจำสัปดาห์ทางอีเมล" desc="ส่งวันจันทร์เช้า" />
-              <SettingToggle title="แจ้งเตือนผ่าน LINE Notify" desc="ต้องเชื่อมต่อบัญชี LINE ก่อน" />
+              <div className="divider" />
+              <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                <div>
+                  <div style={{ fontWeight: 500 }}>แจ้งเตือนผ่าน LINE</div>
+                  <div className="muted" style={{ fontSize: 12.5 }}>
+                    broadcast ของขาด/ใกล้หมดอายุ เข้า LINE OA (ตั้ง LINE_TOKEN ก่อน)
+                  </div>
+                </div>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  icon={<I.Bell size={15} />}
+                  onClick={handleLineTest}
+                  disabled={lineBusy || !isSupabaseConfigured}
+                >
+                  {lineBusy ? 'กำลังส่ง…' : 'ทดสอบ LINE'}
+                </Button>
+              </div>
             </div>
           </Card>
 
