@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { Icons } from '../icons';
 import { Button, Card, EmptyState, ExpiryBadge, Input, Tabs } from '../ui';
 import { daysFromToday, formatThaiDate, useFluids, useStock, useWards } from '../lib/data';
+import { useSettings, warnWindowLabel } from '../lib/settings';
 
 export function ExpiryPage() {
   const I = Icons;
@@ -12,6 +13,8 @@ export function ExpiryPage() {
   const { stock, loading } = useStock();
   const { wards } = useWards();
   const { fluids } = useFluids();
+  const { expiryWarnDays } = useSettings();
+  const warnLabel = warnWindowLabel(expiryWarnDays);
 
   const fluidName = useMemo(() => {
     const m: Record<string, string> = {};
@@ -24,15 +27,15 @@ export function ExpiryPage() {
     return {
       expired: all.filter((x) => x.days < 0),
       critical: all.filter((x) => x.days >= 0 && x.days <= 30),
-      soon: all.filter((x) => x.days > 30 && x.days <= 180),
-      ok: all.filter((x) => x.days > 180),
+      soon: all.filter((x) => x.days > 30 && x.days <= expiryWarnDays),
+      ok: all.filter((x) => x.days > expiryWarnDays),
     };
-  }, [stock]);
+  }, [stock, expiryWarnDays]);
 
   const tabs = [
     { value: 'expired', label: 'หมดอายุแล้ว', count: buckets.expired.length },
     { value: 'critical', label: 'ภายใน 30 วัน', count: buckets.critical.length },
-    { value: 'soon', label: '1–6 เดือน', count: buckets.soon.length },
+    { value: 'soon', label: `≤ ${warnLabel}`, count: buckets.soon.length },
     { value: 'ok', label: 'ยังไม่เสี่ยง', count: buckets.ok.length },
   ];
 
@@ -100,7 +103,7 @@ export function ExpiryPage() {
             <I.Calendar size={22} />
           </div>
           <div className="kpi-body">
-            <div className="kpi-label">ใกล้หมด (1–6 เดือน)</div>
+            <div className="kpi-label">ใกล้หมด (≤ {warnLabel})</div>
             <div className="kpi-value">
               {buckets.soon.length}
               <span className="kpi-unit">รายการ</span>
@@ -118,7 +121,7 @@ export function ExpiryPage() {
               {buckets.ok.length}
               <span className="kpi-unit">รายการ</span>
             </div>
-            <div className="kpi-foot">เหลือมากกว่า 6 เดือน</div>
+            <div className="kpi-foot">เหลือมากกว่า {warnLabel}</div>
           </div>
         </div>
       </div>

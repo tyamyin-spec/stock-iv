@@ -111,7 +111,7 @@ async function buildReport(sb: any, id: ReportId, ward: string): Promise<Report>
       headers: ['รหัส', 'ชื่อสารน้ำ', 'Lot', 'วันหมดอายุ', 'วอร์ด', 'คงเหลือ', 'สถานะ'],
       rows: list
         .map((s: any) => ({ s, d: daysFrom(s.expiry) }))
-        .filter((x: any) => x.d <= 90)
+        .filter((x: any) => x.d <= 210)
         .sort((a: any, b: any) => a.d - b.d)
         .map(({ s, d }: any) => [
           s.display_code,

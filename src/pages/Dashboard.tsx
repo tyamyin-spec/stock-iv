@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Icons } from '../icons';
 import { Button, Card, EmptyState } from '../ui';
 import { daysFromToday, fmtNum, formatThaiDate, useMovements, useStock, useWards } from '../lib/data';
+import { useSettings } from '../lib/settings';
 import type { PageId } from '../shell';
 
 function useMountIn(delay = 0) {
@@ -41,6 +42,7 @@ export function DashboardPage({
 
   const { stock, loading: stockLoading } = useStock();
   const { wards } = useWards();
+  const { expiryWarnDays } = useSettings();
   const { movements } = useMovements(500);
 
   // Stock filtered by ward.
@@ -103,10 +105,10 @@ export function DashboardPage({
   const expiringItems = useMemo(() => {
     return filteredStock
       .map((s) => ({ ...s, days: daysFromToday(s.expiry) }))
-      .filter((s) => s.days >= 0 && s.days <= 220)
+      .filter((s) => s.days >= 0 && s.days <= expiryWarnDays)
       .sort((a, b) => a.days - b.days)
       .slice(0, 6);
-  }, [filteredStock]);
+  }, [filteredStock, expiryWarnDays]);
 
   const totalStock = useMemo(() => stock.reduce((s, x) => s + x.qty, 0), [stock]);
   const heroTotal = wardFilter === 'all' ? totalStock : (wardTotals[wardFilter] ?? 0);

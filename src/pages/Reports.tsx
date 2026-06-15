@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Icons } from '../icons';
 import { Button, Card, EmptyState, Field, Input, SectionTitle, Select, useToast } from '../ui';
 import { useFluids, useMovements, usePrices, useReportSchedule, useStock, useWards } from '../lib/data';
+import { useSettings } from '../lib/settings';
 import { exportReport, type ReportFormat, type ReportId } from '../lib/export';
 
 // Report metadata, shared by the export cards and the email-schedule picker.
@@ -27,6 +28,7 @@ export function ReportsPage() {
   const { fluids } = useFluids();
   const { prices } = usePrices();
   const { current: schedule, save: saveSchedule, remove: removeSchedule, sendTestNow } = useReportSchedule();
+  const { expiryWarnDays } = useSettings();
   const [from, setFrom] = useState('2567-05-01');
   const [to, setTo] = useState('2567-05-21');
   const [ward, setWard] = useState('all');
@@ -114,7 +116,7 @@ export function ReportsPage() {
 
   const handleExport = async (id: ReportId) => {
     try {
-      const data = await exportReport(id, format, { stock, movements, wards, fluids, prices, from, to, ward }, { print: true });
+      const data = await exportReport(id, format, { stock, movements, wards, fluids, prices, from, to, ward, expiryWarnDays }, { print: true });
       if (data.rows.length === 0) {
         toast({ tone: 'warning', title: 'ไม่มีข้อมูลในช่วงที่เลือก', desc: data.title });
       } else {
@@ -131,7 +133,7 @@ export function ReportsPage() {
 
   const handlePreview = async (id: ReportId) => {
     try {
-      const data = await exportReport(id, 'pdf', { stock, movements, wards, fluids, prices, from, to, ward }, { print: false });
+      const data = await exportReport(id, 'pdf', { stock, movements, wards, fluids, prices, from, to, ward, expiryWarnDays }, { print: false });
       if (data.rows.length === 0) {
         toast({ tone: 'warning', title: 'ไม่มีข้อมูลในช่วงที่เลือก', desc: data.title });
       }

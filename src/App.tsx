@@ -14,6 +14,7 @@ import { SettingsPage } from './pages/Settings';
 import { WardsPage } from './pages/Wards';
 import { LoginPage } from './pages/Login';
 import { AuthProvider, useAuth } from './lib/auth';
+import { SettingsProvider, useSettings } from './lib/settings';
 import { daysFromToday, useStock } from './lib/data';
 
 type Density = 'comfy' | 'cozy' | 'compact';
@@ -36,9 +37,11 @@ const PAGE_TITLES: Record<PageId, { crumb: string; title: string }> = {
 export default function App() {
   return (
     <AuthProvider>
-      <ToastProvider>
-        <AppInner />
-      </ToastProvider>
+      <SettingsProvider>
+        <ToastProvider>
+          <AppInner />
+        </ToastProvider>
+      </SettingsProvider>
     </AuthProvider>
   );
 }
@@ -67,6 +70,7 @@ function Shell() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [t, setTweak] = useTweaks<TweakState>(TWEAK_DEFAULTS);
   const { stock } = useStock();
+  const { expiryWarnDays } = useSettings();
 
   useEffect(() => {
     document.body.setAttribute('data-density', t.density || 'cozy');
@@ -95,10 +99,10 @@ function Shell() {
   const alerts = useMemo(() => {
     const low = stock.filter((s) => s.qty < s.min_qty).length;
     const dayMap = stock.map((s) => daysFromToday(s.expiry));
-    const expSoon = dayMap.filter((d) => d >= 0 && d <= 180).length;
+    const expSoon = dayMap.filter((d) => d >= 0 && d <= expiryWarnDays).length;
     const expired = dayMap.filter((d) => d < 0).length;
     return { low, expSoon, expired };
-  }, [stock]);
+  }, [stock, expiryWarnDays]);
   const notifItems = useNotifications(alerts);
 
   return (

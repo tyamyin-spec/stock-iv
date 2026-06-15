@@ -23,6 +23,7 @@ type BuildCtx = {
   from: string; // BE date "พ.ศ.-MM-DD"
   to: string;
   ward: string; // ward id or "all"
+  expiryWarnDays?: number; // near-expiry window for r3 (default 210)
 };
 
 // ── helpers ─────────────────────────────────────────────────────────────────
@@ -115,9 +116,10 @@ export function buildReport(id: ReportId, ctx: BuildCtx): ReportData {
     }
 
     case 'r3': {
+      const warnDays = ctx.expiryWarnDays ?? 210;
       const rows = filterStock(ctx)
         .map((s) => ({ s, days: daysFromToday(s.expiry) }))
-        .filter((x) => x.days <= 90)
+        .filter((x) => x.days <= warnDays)
         .sort((a, b) => a.days - b.days)
         .map(({ s, days }) => [
           s.display_code,
@@ -130,7 +132,7 @@ export function buildReport(id: ReportId, ctx: BuildCtx): ReportData {
         ]);
       return {
         title: 'รายงานสารน้ำใกล้หมดอายุ',
-        subtitle: `${subtitle} · ภายใน 90 วัน`,
+        subtitle: `${subtitle} · ภายใน ${warnDays} วัน`,
         headers: ['รหัส', 'ชื่อสารน้ำ', 'Lot', 'วันหมดอายุ', 'วอร์ด', 'คงเหลือ', 'สถานะ'],
         rows,
       };

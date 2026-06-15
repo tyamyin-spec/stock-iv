@@ -5,6 +5,7 @@ import { Icons } from '../icons';
 import { Badge, Button, Card, Field, Input, Modal, SectionTitle, Select, useToast } from '../ui';
 import { useWards } from '../lib/data';
 import { useAuth } from '../lib/auth';
+import { useSettings, EXPIRY_WARN_OPTIONS } from '../lib/settings';
 import { isSupabaseConfigured } from '../lib/supabase';
 
 export function SettingsPage() {
@@ -12,6 +13,7 @@ export function SettingsPage() {
   const toast = useToast();
   const { wards } = useWards();
   const { user, signOut, updatePassword } = useAuth();
+  const { expiryWarnDays, setExpiryWarnDays } = useSettings();
   const [pwModal, setPwModal] = useState(false);
 
   const rawEmail = user?.email ?? '';
@@ -97,13 +99,18 @@ export function SettingsPage() {
               <SettingRow
                 icon={<I.Clock size={18} />}
                 title="ระยะเตือนใกล้หมดอายุ"
-                desc="แสดงเตือนเมื่อเหลือกี่วัน"
+                desc="เตือนเมื่อสารน้ำใกล้หมดอายุภายในระยะนี้ (มีผลทุกหน้า)"
                 control={
-                  <Select defaultValue="180" style={{ width: 150 }}>
-                    <option value="30">30 วัน</option>
-                    <option value="90">90 วัน</option>
-                    <option value="180">180 วัน</option>
-                    <option value="365">365 วัน</option>
+                  <Select
+                    value={String(expiryWarnDays)}
+                    onChange={(e) => setExpiryWarnDays(Number(e.target.value))}
+                    style={{ width: 190 }}
+                  >
+                    {EXPIRY_WARN_OPTIONS.map((o) => (
+                      <option key={o.days} value={String(o.days)}>
+                        {o.label}
+                      </option>
+                    ))}
                   </Select>
                 }
               />
