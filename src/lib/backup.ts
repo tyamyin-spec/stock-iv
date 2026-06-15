@@ -65,16 +65,45 @@ export async function emailBackup(to: string): Promise<{ ok: boolean; error?: st
   return data as { ok: boolean; error?: string; rows?: number };
 }
 
-export async function downloadBackup(): Promise<Backup> {
-  const data = await gatherBackup();
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+function triggerDownload(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `stock-iv-backup_${data.exported_at.slice(0, 10)}.json`;
+  a.download = filename;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+export async function downloadBackup(): Promise<Backup> {
+  const data = await gatherBackup();
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  triggerDownload(blob, `stock-iv-backup_${data.exported_at.slice(0, 10)}.json`);
+  return data;
+}
+
+// Human-readable backup: one .xlsx workbook with a sheet per table.
+const SHEET_NAMES: Record<string, string> = {
+  wards: 'วอร์ด',
+  fluid_types: 'ชนิดสารน้ำ',
+  prices: 'ราคา',
+  stock: 'สต็อก',
+  movements: 'ประวัติรับ-เบิก',
+  report_schedules: 'ตารางอีเมล',
+  profiles: 'ผู้ใช้',
+};
+
+export async function downloadBackupXlsx(): Promise<Backup> {
+  const data = await gatherBackup();
+  const XLSX = await import('xlsx');
+  const wb = XLSX.utils.book_new();
+  for (const [name, rows] of Object.entries(data.tables)) {
+    const ws = XLSX.utils.json_to_sheet(rows as any[]);
+    XLSX.utils.book_append_sheet(wb, ws, (SHEET_NAMES[name] ?? name).slice(0, 31));
+  }
+  const out = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+  const blob = new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  triggerDownload(blob, `stock-iv-backup_${data.exported_at.slice(0, 10)}.xlsx`);
   return data;
 }

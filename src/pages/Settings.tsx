@@ -7,7 +7,7 @@ import { useWards } from '../lib/data';
 import { useAuth } from '../lib/auth';
 import { useSettings, EXPIRY_WARN_OPTIONS } from '../lib/settings';
 import { isSupabaseConfigured } from '../lib/supabase';
-import { backupCounts, downloadBackup, emailBackup } from '../lib/backup';
+import { backupCounts, downloadBackup, downloadBackupXlsx, emailBackup } from '../lib/backup';
 
 export function SettingsPage() {
   const I = Icons;
@@ -19,10 +19,10 @@ export function SettingsPage() {
   const [emailBusy, setEmailBusy] = useState(false);
   const [backupEmail, setBackupEmail] = useState('');
 
-  const handleDownloadBackup = async () => {
+  const handleDownloadBackup = async (kind: 'json' | 'xlsx') => {
     setBackupBusy(true);
     try {
-      const b = await downloadBackup();
+      const b = kind === 'xlsx' ? await downloadBackupXlsx() : await downloadBackup();
       toast({ tone: 'success', title: 'ดาวน์โหลดไฟล์สำรองแล้ว', desc: backupCounts(b) });
     } catch (e: any) {
       toast({ tone: 'danger', title: 'สำรองข้อมูลไม่สำเร็จ', desc: e?.message });
@@ -176,14 +176,26 @@ export function SettingsPage() {
           <Card>
             <SectionTitle title="สำรองข้อมูล (Backup)" subtitle="ดาวน์โหลดหรือส่งสำเนาข้อมูลทั้งหมดเก็บไว้" />
             <div className="col" style={{ gap: 12 }}>
-              <Button
-                variant="secondary"
-                icon={<I.Download size={16} />}
-                onClick={handleDownloadBackup}
-                disabled={backupBusy}
-              >
-                {backupBusy ? 'กำลังเตรียมไฟล์…' : 'ดาวน์โหลดไฟล์สำรอง (.json)'}
-              </Button>
+              <div className="row" style={{ gap: 10 }}>
+                <Button
+                  variant="secondary"
+                  icon={<I.Download size={16} />}
+                  onClick={() => handleDownloadBackup('xlsx')}
+                  disabled={backupBusy}
+                  style={{ flex: 1 }}
+                >
+                  {backupBusy ? 'กำลังเตรียม…' : 'Excel (อ่านง่าย)'}
+                </Button>
+                <Button
+                  variant="secondary"
+                  icon={<I.Download size={16} />}
+                  onClick={() => handleDownloadBackup('json')}
+                  disabled={backupBusy}
+                  style={{ flex: 1 }}
+                >
+                  JSON (กู้คืน)
+                </Button>
+              </div>
               <div className="divider" />
               <Field label="ส่งไฟล์สำรองเข้าอีเมล" hint="ส่งครั้งเดียวตอนนี้ · อัตโนมัติรายสัปดาห์เมื่อตั้ง cron">
                 <Input
