@@ -7,6 +7,7 @@ import { useWards } from '../lib/data';
 import { useAuth } from '../lib/auth';
 import { useSettings, EXPIRY_WARN_OPTIONS } from '../lib/settings';
 import { isSupabaseConfigured } from '../lib/supabase';
+import { backupCounts, downloadBackup, emailBackup } from '../lib/backup';
 
 export function SettingsPage() {
   const I = Icons;
@@ -14,6 +15,39 @@ export function SettingsPage() {
   const { wards } = useWards();
   const { user, signOut, updatePassword } = useAuth();
   const { expiryWarnDays, setExpiryWarnDays } = useSettings();
+  const [backupBusy, setBackupBusy] = useState(false);
+  const [emailBusy, setEmailBusy] = useState(false);
+  const [backupEmail, setBackupEmail] = useState('');
+
+  const handleDownloadBackup = async () => {
+    setBackupBusy(true);
+    try {
+      const b = await downloadBackup();
+      toast({ tone: 'success', title: 'ดาวน์โหลดไฟล์สำรองแล้ว', desc: backupCounts(b) });
+    } catch (e: any) {
+      toast({ tone: 'danger', title: 'สำรองข้อมูลไม่สำเร็จ', desc: e?.message });
+    } finally {
+      setBackupBusy(false);
+    }
+  };
+
+  const handleEmailBackup = async () => {
+    const to = backupEmail.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+      toast({ tone: 'warning', title: 'กรุณากรอกอีเมลผู้รับให้ถูกต้อง' });
+      return;
+    }
+    setEmailBusy(true);
+    try {
+      const res = await emailBackup(to);
+      if (res?.ok) toast({ tone: 'success', title: 'ส่งไฟล์สำรองเข้าอีเมลแล้ว', desc: to });
+      else toast({ tone: 'danger', title: 'ส่งไม่สำเร็จ', desc: res?.error });
+    } catch (e: any) {
+      toast({ tone: 'danger', title: 'ส่งไฟล์สำรองไม่สำเร็จ', desc: e?.message });
+    } finally {
+      setEmailBusy(false);
+    }
+  };
   const [pwModal, setPwModal] = useState(false);
 
   const rawEmail = user?.email ?? '';
@@ -136,6 +170,37 @@ export function SettingsPage() {
               <SettingToggle title="แจ้งเตือนใกล้หมดอายุ" desc="ทุกเช้า 08:00 น." defaultChecked />
               <SettingToggle title="สรุปประจำสัปดาห์ทางอีเมล" desc="ส่งวันจันทร์เช้า" />
               <SettingToggle title="แจ้งเตือนผ่าน LINE Notify" desc="ต้องเชื่อมต่อบัญชี LINE ก่อน" />
+            </div>
+          </Card>
+
+          <Card>
+            <SectionTitle title="สำรองข้อมูล (Backup)" subtitle="ดาวน์โหลดหรือส่งสำเนาข้อมูลทั้งหมดเก็บไว้" />
+            <div className="col" style={{ gap: 12 }}>
+              <Button
+                variant="secondary"
+                icon={<I.Download size={16} />}
+                onClick={handleDownloadBackup}
+                disabled={backupBusy}
+              >
+                {backupBusy ? 'กำลังเตรียมไฟล์…' : 'ดาวน์โหลดไฟล์สำรอง (.json)'}
+              </Button>
+              <div className="divider" />
+              <Field label="ส่งไฟล์สำรองเข้าอีเมล" hint="ส่งครั้งเดียวตอนนี้ · อัตโนมัติรายสัปดาห์เมื่อตั้ง cron">
+                <Input
+                  type="email"
+                  placeholder="you@hospital.go.th"
+                  value={backupEmail}
+                  onChange={(e) => setBackupEmail(e.target.value)}
+                />
+              </Field>
+              <Button
+                variant="secondary"
+                icon={<I.Refresh size={16} />}
+                onClick={handleEmailBackup}
+                disabled={emailBusy || !isSupabaseConfigured}
+              >
+                {emailBusy ? 'กำลังส่ง…' : 'ส่งสำรองเข้าอีเมลตอนนี้'}
+              </Button>
             </div>
           </Card>
 
