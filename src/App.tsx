@@ -8,6 +8,7 @@ import { DashboardPage } from './pages/Dashboard';
 import { StockPage } from './pages/Stock';
 import { AddPage, ScannerModal } from './pages/Add';
 import { ExpiryPage } from './pages/Expiry';
+import { PlanningPage } from './pages/Planning';
 import { ReportsPage } from './pages/Reports';
 import { ValuePage } from './pages/Value';
 import { SettingsPage } from './pages/Settings';
@@ -28,6 +29,7 @@ const PAGE_TITLES: Record<PageId, { crumb: string; title: string }> = {
   stock: { crumb: 'คลังสารน้ำ', title: 'รายการคงคลัง' },
   add: { crumb: 'บันทึก', title: 'เพิ่ม / ลงข้อมูล' },
   expiry: { crumb: 'การแจ้งเตือน', title: 'หมดอายุและใกล้หมดอายุ' },
+  planning: { crumb: 'การวางแผน', title: 'วางแผนสต็อก & ขอเติม' },
   reports: { crumb: 'รายงาน', title: 'รายงาน & Export' },
   value: { crumb: 'คลังสารน้ำ', title: 'ราคา & มูลค่าสต็อก' },
   wards: { crumb: 'การจัดการ', title: 'จัดการวอร์ด' },
@@ -122,6 +124,7 @@ function Shell() {
           <AddPage onDone={() => setPage('stock')} prefillBarcode={scannedCode} onOpenScan={openScanModal} />
         )}
         {page === 'expiry' && <ExpiryPage />}
+        {page === 'planning' && <PlanningPage />}
         {page === 'reports' && <ReportsPage />}
         {page === 'value' && <ValuePage layout={t.valueLayout || 'a'} />}
         {page === 'wards' && <WardsPage />}
@@ -184,6 +187,7 @@ function Shell() {
               { value: 'stock', label: 'รายการคงคลัง' },
               { value: 'add', label: 'เพิ่ม/ลงข้อมูล' },
               { value: 'expiry', label: 'หมดอายุ' },
+              { value: 'planning', label: 'วางแผนสต็อก' },
               { value: 'reports', label: 'รายงาน' },
               { value: 'value', label: 'ราคา & มูลค่า' },
               { value: 'wards', label: 'จัดการวอร์ด' },

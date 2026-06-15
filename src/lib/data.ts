@@ -752,6 +752,57 @@ export function useProfiles() {
   return { profiles: r.data, nameOf, loading: r.loading, refresh: r.refresh };
 }
 
+// ── stock planning (reorder + usage forecast) ─────────────────────────────
+export type PlanRow = {
+  ward_id: string;
+  fluid_code: string;
+  qty: number; // current total across lots
+  min: number;
+  max: number;
+  avgPerDay: number; // average daily usage over the window
+  daysLeft: number | null; // null when there's no usage history
+  reorderQty: number; // suggested top-up to max when below min
+  status: 'low' | 'ok' | 'over';
+};
+
+// Compute per ward+fluid: current stock, average daily use (from 'out' movements
+// in the trailing window), days of stock left, and a reorder suggestion.
+export function buildPlanning(stock: StockRow[], movements: Movement[], windowDays = 30): PlanRow[] {
+  const cutoff = Date.now() - windowDays * 86400000;
+
+  const groups = new Map<string, StockRow[]>();
+  for (const s of stock) {
+    const k = `${s.ward_id}|${s.fluid_code}`;
+    const arr = groups.get(k);
+    if (arr) arr.push(s);
+    else groups.set(k, [s]);
+  }
+
+  const usage = new Map<string, number>();
+  for (const m of movements) {
+    if (m.kind !== 'out' || !m.ward_id) continue;
+    if (new Date(m.occurred_at).getTime() < cutoff) continue;
+    const k = `${m.ward_id}|${m.fluid_code}`;
+    usage.set(k, (usage.get(k) ?? 0) + Math.abs(m.qty));
+  }
+
+  const rows: PlanRow[] = [];
+  for (const [k, lots] of groups) {
+    const [ward_id, fluid_code] = k.split('|');
+    const qty = lots.reduce((a, s) => a + s.qty, 0);
+    const min = Math.max(...lots.map((s) => s.min_qty));
+    const max = Math.max(...lots.map((s) => s.max_qty));
+    const avgPerDay = (usage.get(k) ?? 0) / windowDays;
+    const daysLeft = avgPerDay > 0 ? Math.round(qty / avgPerDay) : null;
+    const reorderQty = qty < min ? Math.max(max - qty, 0) : 0;
+    let status: PlanRow['status'] = 'ok';
+    if (qty < min || (daysLeft !== null && daysLeft <= 14)) status = 'low';
+    else if (daysLeft !== null && daysLeft > 240) status = 'over';
+    rows.push({ ward_id, fluid_code, qty, min, max, avgPerDay, daysLeft, reorderQty, status });
+  }
+  return rows;
+}
+
 // ── formatters (kept here so callers don't re-import data.ts vs. lib/data.ts) ──
 export const fmtNum = (n: number) => n.toLocaleString('en-US');
 export const fmtBaht = (n: number) => '฿' + Math.round(n).toLocaleString('en-US');
