@@ -67,7 +67,8 @@ Deno.serve(async (req) => {
       const [ward_id, fluid_code] = k.split('|');
       const qty = lots.reduce((a: number, s: any) => a + s.qty, 0);
       const min = Math.max(...lots.map((s: any) => s.min_qty));
-      if (qty < min) low.push(`• ${fluidName(fluid_code)} [${wardName(ward_id)}] เหลือ ${qty} (ต่ำกว่า ${min})`);
+      const max = Math.max(...lots.map((s: any) => s.max_qty));
+      if (qty < min) low.push(`• ${fluidName(fluid_code)} [${wardName(ward_id)}] เบิกเพิ่ม +${max - qty} (เหลือ ${qty} → เต็ม ${max})`);
     }
 
     // Near / over expiry lots.
@@ -88,7 +89,7 @@ Deno.serve(async (req) => {
 
     const today = new Date().toLocaleDateString('th-TH');
     let text = `🔔 แจ้งเตือนสต็อกสารน้ำ (${today})\n`;
-    text += `\n⚠️ ต่ำกว่าขั้นต่ำ (${low.length})\n` + (low.length ? low.join('\n') : '— ไม่มี');
+    text += `\n📦 ต้องเบิกเพิ่มวันนี้ — เติมให้เต็ม max (${low.length})\n` + (low.length ? low.join('\n') : '— ไม่มี');
     text += `\n\n⏰ ใกล้/เลยหมดอายุ ภายใน 7 เดือน (${expiring.length})\n` + (expiring.length ? expiring.join('\n') : '— ไม่มี');
     if (text.length > 4900) text = text.slice(0, 4900) + '\n…(ดูทั้งหมดในแอป)';
 
