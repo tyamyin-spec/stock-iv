@@ -6,7 +6,7 @@ import { Button, IconButton, Input } from './ui';
 import { useAuth } from './lib/auth';
 import { useWards } from './lib/data';
 
-export type PageId = 'dashboard' | 'stock' | 'add' | 'expiry' | 'planning' | 'reports' | 'value' | 'wards' | 'settings';
+export type PageId = 'dashboard' | 'stock' | 'add' | 'expiry' | 'planning' | 'count' | 'reports' | 'value' | 'wards' | 'settings';
 
 export const NAV_ITEMS: { id: PageId; label: string; icon: IconKey; section: 'main' | 'system' }[] = [
   { id: 'dashboard', label: 'แดชบอร์ด', icon: 'Home', section: 'main' },
@@ -14,6 +14,7 @@ export const NAV_ITEMS: { id: PageId; label: string; icon: IconKey; section: 'ma
   { id: 'add', label: 'เพิ่ม/ลงข้อมูล', icon: 'Plus', section: 'main' },
   { id: 'expiry', label: 'แจ้งเตือนหมดอายุ', icon: 'AlertTri', section: 'main' },
   { id: 'planning', label: 'วางแผนสต็อก', icon: 'Clipboard', section: 'main' },
+  { id: 'count', label: 'ตรวจนับสต็อก', icon: 'CheckCircle', section: 'main' },
   { id: 'reports', label: 'รายงาน', icon: 'Chart', section: 'main' },
   { id: 'value', label: 'ราคา & มูลค่า', icon: 'Coins', section: 'main' },
   { id: 'wards', label: 'จัดการวอร์ด', icon: 'Building', section: 'system' },

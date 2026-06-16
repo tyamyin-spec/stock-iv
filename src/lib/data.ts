@@ -508,7 +508,57 @@ export function useStock() {
     [adjustQty, r, user],
   );
 
-  return { stock: r.data, loading: r.loading, error: r.error, refresh: r.refresh, create, update, remove, adjustQty, transfer, dispense };
+  // Cycle count: set each lot's qty to the physically-counted value and record
+  // an 'adjust' movement for the difference. Lots with no change are skipped.
+  const recount = useCallback(
+    async (items: { id: string; counted: number }[]) => {
+      const all = await loadStockRows();
+      const results: { id: string; delta: number }[] = [];
+      for (const it of items) {
+        const row = all.find((s) => s.id === it.id);
+        if (!row) continue;
+        const counted = Math.max(0, Math.round(it.counted));
+        const delta = counted - row.qty;
+        if (delta === 0) continue;
+        await update(row.id, { qty: counted });
+        const note = `ตรวจนับ: ระบบ ${row.qty} → นับจริง ${counted} (${delta > 0 ? '+' : ''}${delta})`;
+        if (isSupabaseConfigured) {
+          const { error } = await (requireSupabase().from('movements') as any).insert({
+            stock_id: row.id,
+            fluid_code: row.fluid_code,
+            ward_id: row.ward_id,
+            kind: 'adjust',
+            qty: delta,
+            note,
+            by_user: user?.id ?? null,
+          });
+          if (error) throw error;
+        } else {
+          const allM = lsGet<Movement[]>(LS_MOVEMENTS, []);
+          lsSet(LS_MOVEMENTS, [
+            {
+              id: uuid(),
+              stock_id: row.id,
+              fluid_code: row.fluid_code,
+              ward_id: row.ward_id,
+              kind: 'adjust',
+              qty: delta,
+              note,
+              occurred_at: new Date().toISOString(),
+              by_user: user?.id ?? null,
+            },
+            ...allM,
+          ]);
+        }
+        results.push({ id: it.id, delta });
+      }
+      await r.refresh();
+      return results;
+    },
+    [update, r, user],
+  );
+
+  return { stock: r.data, loading: r.loading, error: r.error, refresh: r.refresh, create, update, remove, adjustQty, transfer, dispense, recount };
 }
 
 // ── movements ──────────────────────────────────────────────────────────────
