@@ -17,6 +17,7 @@ import {
   useToast,
 } from '../ui';
 import { daysFromToday, formatThaiDate, useFluids, useStock, useWards } from '../lib/data';
+import { printStockLabels } from '../lib/labels';
 import type { StockRow, Ward } from '../lib/db.types';
 
 export function StockPage({ onOpenAdd, onOpenScan }: { onOpenAdd: () => void; onOpenScan: () => void }) {
@@ -46,6 +47,17 @@ export function StockPage({ onOpenAdd, onOpenScan }: { onOpenAdd: () => void; on
     fluids.forEach((f) => (m[f.code] = f.name));
     return m;
   }, [fluids]);
+
+  const printLabels = async (rows: StockRow[]) => {
+    try {
+      await printStockLabels(rows, {
+        fluidName: (code) => fluidByCode[code] ?? code,
+        wardName: (id) => wards.find((w) => w.id === id)?.name ?? '—',
+      });
+    } catch (e: any) {
+      toast({ tone: 'danger', title: 'พิมพ์ป้ายไม่สำเร็จ', desc: e?.message });
+    }
+  };
 
   const filtered = useMemo(() => {
     let arr = stock;
@@ -208,6 +220,14 @@ export function StockPage({ onOpenAdd, onOpenScan }: { onOpenAdd: () => void; on
 
           {selected.size > 0 && (
             <>
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={<I.Print size={14} />}
+                onClick={() => printLabels(stock.filter((s) => selected.has(s.id)))}
+              >
+                พิมพ์ป้าย ({selected.size})
+              </Button>
               <Button variant="secondary" size="sm" icon={<I.Download size={14} />}>
                 Export ({selected.size})
               </Button>
@@ -322,6 +342,7 @@ export function StockPage({ onOpenAdd, onOpenScan }: { onOpenAdd: () => void; on
                       <td>
                         <div className="actions">
                           <IconButton icon={<I.Flask size={16} />} label="เบิกใช้" onClick={() => setDispensing(x)} />
+                          <IconButton icon={<I.Print size={16} />} label="พิมพ์ป้าย" onClick={() => printLabels([x])} />
                           <IconButton icon={<I.ArrowRight size={16} />} label="โอนย้าย" onClick={() => setTransfering(x)} />
                           <IconButton icon={<I.Edit size={16} />} label="แก้ไข" onClick={() => setEditing(x)} />
                           <IconButton
