@@ -1,7 +1,7 @@
 // Add data page — multi-step with fluid picker + barcode scanner.
 // Persists stock + a corresponding movement.
 
-import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Icons } from '../icons';
 import { Badge, Button, Card, Field, Input, Modal, Select, useToast } from '../ui';
 import {
@@ -13,6 +13,7 @@ import {
   useWards,
   type FluidCategory,
 } from '../lib/data';
+import { decodeStockId } from '../lib/labels';
 import type { FluidType, StockRow } from '../lib/db.types';
 
 function FluidLabel({ fluid, size = 'md' }: { fluid: FluidType | null; size?: 'md' | 'lg' }) {
@@ -216,11 +217,16 @@ export function AddPage({
     }
   }, [wards, form.ward]);
 
-  // Try to match a scanned barcode against an existing stock row to pre-fill.
+  // Match a scanned code against an existing stock row to pre-fill. Two cases:
+  //  1. Our printed label "IV:<id>" → find that exact lot.
+  //  2. A manufacturer/own barcode stored on a stock row's `barcode` field.
   useEffect(() => {
     if (!prefillBarcode) return;
-    setForm((f) => ({ ...f, barcode: prefillBarcode }));
-    const found = stock.find((x) => x.barcode === prefillBarcode);
+    const internalId = decodeStockId(prefillBarcode);
+    const found = internalId
+      ? stock.find((x) => x.id === internalId)
+      : stock.find((x) => x.barcode === prefillBarcode);
+    setForm((f) => ({ ...f, barcode: found?.barcode ?? (internalId ? '' : prefillBarcode) }));
     if (found) {
       setForm((f) => ({
         ...f,
@@ -229,6 +235,7 @@ export function AddPage({
         exp: found.expiry,
         ward: found.ward_id,
         min: found.min_qty,
+        max: found.max_qty,
       }));
       setStep(1);
     }
@@ -678,28 +685,97 @@ export function ScannerModal({
 }) {
   const I = Icons;
   const [manualCode, setManualCode] = useState('');
+  const [camState, setCamState] = useState<'starting' | 'live' | 'error'>('starting');
+  const [camMsg, setCamMsg] = useState('');
   const toast = useToast();
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const firedRef = useRef(false); // guard: only capture once per open
+
+  const useCode = (bc: string) => {
+    const v = bc.trim();
+    if (!v) return;
+    onCapture?.(v);
+    onClose();
+    toast({ tone: 'success', title: 'สแกนสำเร็จ', desc: v });
+  };
 
   useEffect(() => {
     if (!open) {
       setManualCode('');
+      return;
     }
+    firedRef.current = false;
+    setCamState('starting');
+    setCamMsg('');
+    let cleanup = () => {};
+
+    const onDetected = (raw: string) => {
+      if (firedRef.current || !raw) return;
+      firedRef.current = true;
+      cleanup();
+      useCode(raw);
+    };
+
+    (async () => {
+      const video = videoRef.current;
+      if (!video) return;
+      try {
+        if ('BarcodeDetector' in window) {
+          // Native path (Android Chrome etc.)
+          const Detector = (window as any).BarcodeDetector;
+          const formats = await Detector.getSupportedFormats?.().catch(() => []);
+          const want = ['qr_code', 'ean_13', 'ean_8', 'code_128', 'code_39'].filter(
+            (f) => !formats?.length || formats.includes(f),
+          );
+          const detector = new Detector({ formats: want.length ? want : undefined });
+          const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+          video.srcObject = stream;
+          await video.play();
+          setCamState('live');
+          const iv = setInterval(async () => {
+            try {
+              const codes = await detector.detect(video);
+              if (codes && codes[0]?.rawValue) onDetected(codes[0].rawValue);
+            } catch {
+              /* transient detect errors are fine */
+            }
+          }, 350);
+          cleanup = () => {
+            clearInterval(iv);
+            stream.getTracks().forEach((t) => t.stop());
+          };
+        } else {
+          // Fallback path (iOS Safari): ZXing, loaded on demand.
+          const { BrowserMultiFormatReader } = await import('@zxing/browser');
+          const reader = new BrowserMultiFormatReader();
+          const controls = await reader.decodeFromVideoDevice(undefined, video, (result) => {
+            if (result) onDetected(result.getText());
+          });
+          setCamState('live');
+          cleanup = () => controls.stop();
+        }
+      } catch (e: any) {
+        setCamState('error');
+        setCamMsg(
+          e?.name === 'NotAllowedError'
+            ? 'ไม่ได้รับอนุญาตให้ใช้กล้อง — กรุณาอนุญาตในเบราว์เซอร์ หรือกรอกด้วยตนเอง'
+            : 'เปิดกล้องไม่ได้บนอุปกรณ์นี้ — ใช้เครื่องสแกน USB หรือกรอกด้วยตนเองได้',
+        );
+      }
+    })();
+
+    return () => cleanup();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   if (!open) return null;
-
-  const useCode = (bc: string) => {
-    onCapture?.(bc);
-    onClose();
-    toast({ tone: 'success', title: 'สแกนสำเร็จ', desc: `barcode ${bc}` });
-  };
 
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title="สแกนบาร์โค้ด"
-      subtitle="วางบาร์โค้ดให้อยู่ในกรอบ ระบบจะตรวจจับอัตโนมัติ"
+      title="สแกนบาร์โค้ด / QR"
+      subtitle="วางบาร์โค้ดหรือ QR ให้อยู่ในกรอบ ระบบจะตรวจจับอัตโนมัติ"
       size="md"
       footer={
         <Button variant="ghost" onClick={onClose}>
@@ -709,31 +785,52 @@ export function ScannerModal({
     >
       <div className="col" style={{ gap: 16 }}>
         <div className="scan-stage">
-          <div className="scan-viewfinder">
+          <div className="scan-viewfinder" style={{ position: 'relative', overflow: 'hidden' }}>
+            <video
+              ref={videoRef}
+              muted
+              playsInline
+              style={{
+                position: 'absolute',
+                inset: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                display: camState === 'live' ? 'block' : 'none',
+              }}
+            />
             <span className="corner-tl"></span>
             <span className="corner-tr"></span>
             <span className="corner-bl"></span>
             <span className="corner-br"></span>
-            <div className="scan-bars">
-              <I.Barcode size={140} />
-            </div>
-            <div className="scan-line"></div>
+            {camState !== 'live' && (
+              <div className="scan-bars">
+                <I.Barcode size={120} />
+              </div>
+            )}
+            {camState === 'live' && <div className="scan-line"></div>}
           </div>
           <div className="scan-hint">
-            เปิดกล้องบนอุปกรณ์ที่รองรับ หรือกรอก barcode ด้วยตนเองด้านล่าง
+            {camState === 'starting' && 'กำลังเปิดกล้อง…'}
+            {camState === 'live' && 'เล็งกล้องไปที่บาร์โค้ด/QR บนขวดหรือป้าย'}
+            {camState === 'error' && <span style={{ color: 'var(--danger)' }}>{camMsg}</span>}
           </div>
         </div>
 
         <div className="divider"></div>
 
-        <Field label="กรอก barcode ด้วยตนเอง">
+        <Field label="หรือกรอก/ยิงด้วยเครื่องสแกน USB">
           <div className="row" style={{ gap: 8 }}>
             <Input
               className="mono"
               value={manualCode}
               onChange={(e) => setManualCode(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && manualCode) useCode(manualCode);
+              }}
               placeholder="8851234500011"
               style={{ flex: 1 }}
+              autoFocus
             />
             <Button variant="primary" disabled={!manualCode} onClick={() => useCode(manualCode)}>
               ใช้
