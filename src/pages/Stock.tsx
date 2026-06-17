@@ -1,6 +1,6 @@
 // Stock list page — live data via useStock/useWards/useFluids.
 
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState } from 'react';
 import { Icons } from '../icons';
 import {
   Button,
@@ -11,6 +11,7 @@ import {
   Field,
   Input,
   Modal,
+  RowAction,
   Select,
   StockBadge,
   useToast,
@@ -18,45 +19,6 @@ import {
 import { daysFromToday, formatThaiDate, useFluids, useStock, useWards } from '../lib/data';
 import { printStockLabels } from '../lib/labels';
 import type { StockRow, Ward } from '../lib/db.types';
-
-// Row action: icon with a small text label underneath, so each button is clear.
-function RowAction({
-  icon,
-  label,
-  onClick,
-  danger,
-}: {
-  icon: ReactNode;
-  label: string;
-  onClick: () => void;
-  danger?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      title={label}
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 3,
-        background: 'transparent',
-        border: 'none',
-        cursor: 'pointer',
-        padding: '4px 6px',
-        borderRadius: 8,
-        color: danger ? 'var(--danger, #DC2626)' : 'var(--text-2, #475569)',
-        fontSize: 10.5,
-        lineHeight: 1,
-        whiteSpace: 'nowrap',
-      }}
-    >
-      {icon}
-      <span>{label}</span>
-    </button>
-  );
-}
 
 export function StockPage({ onOpenAdd, onOpenScan }: { onOpenAdd: () => void; onOpenScan: () => void }) {
   const I = Icons;

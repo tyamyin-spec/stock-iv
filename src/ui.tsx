@@ -51,6 +51,46 @@ export function IconButton({ icon, label, className = '', ...rest }: IconButtonP
   );
 }
 
+// Action button with the icon AND a small caption underneath — clearer than an
+// icon alone. Used for row actions in tables.
+export function RowAction({
+  icon,
+  label,
+  onClick,
+  danger,
+}: {
+  icon: ReactNode;
+  label: string;
+  onClick: () => void;
+  danger?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={label}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 3,
+        background: 'transparent',
+        border: 'none',
+        cursor: 'pointer',
+        padding: '4px 6px',
+        borderRadius: 8,
+        color: danger ? 'var(--danger, #DC2626)' : 'var(--text-2, #475569)',
+        fontSize: 10.5,
+        lineHeight: 1,
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {icon}
+      <span>{label}</span>
+    </button>
+  );
+}
+
 // ---------- Surfaces ----------
 type CardProps = {
   children?: ReactNode;

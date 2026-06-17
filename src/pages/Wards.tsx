@@ -9,9 +9,9 @@ import {
   ConfirmDialog,
   EmptyState,
   Field,
-  IconButton,
   Input,
   Modal,
+  RowAction,
   SectionTitle,
   useToast,
 } from '../ui';
@@ -101,8 +101,8 @@ export function WardsPage() {
                     <span className="muted mono">{w.code}</span>
                   </div>
                   <div className="ward-mgr-actions">
-                    <IconButton icon={<I.Edit size={16} />} label="แก้ไข" onClick={() => setEditing(w)} />
-                    <IconButton icon={<I.Trash size={16} />} label="ลบ" onClick={() => setConfirmDel(w)} />
+                    <RowAction icon={<I.Edit size={16} />} label="แก้ไข" onClick={() => setEditing(w)} />
+                    <RowAction icon={<I.Trash size={16} />} label="ลบ" danger onClick={() => setConfirmDel(w)} />
                   </div>
                 </div>
 
