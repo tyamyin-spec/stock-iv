@@ -1,6 +1,6 @@
 // Stock list page — live data via useStock/useWards/useFluids.
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Icons } from '../icons';
 import {
   Button,
@@ -9,7 +9,6 @@ import {
   EmptyState,
   ExpiryBadge,
   Field,
-  IconButton,
   Input,
   Modal,
   Select,
@@ -19,6 +18,45 @@ import {
 import { daysFromToday, formatThaiDate, useFluids, useStock, useWards } from '../lib/data';
 import { printStockLabels } from '../lib/labels';
 import type { StockRow, Ward } from '../lib/db.types';
+
+// Row action: icon with a small text label underneath, so each button is clear.
+function RowAction({
+  icon,
+  label,
+  onClick,
+  danger,
+}: {
+  icon: ReactNode;
+  label: string;
+  onClick: () => void;
+  danger?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={label}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 3,
+        background: 'transparent',
+        border: 'none',
+        cursor: 'pointer',
+        padding: '4px 6px',
+        borderRadius: 8,
+        color: danger ? 'var(--danger, #DC2626)' : 'var(--text-2, #475569)',
+        fontSize: 10.5,
+        lineHeight: 1,
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {icon}
+      <span>{label}</span>
+    </button>
+  );
+}
 
 export function StockPage({ onOpenAdd, onOpenScan }: { onOpenAdd: () => void; onOpenScan: () => void }) {
   const I = Icons;
@@ -341,13 +379,14 @@ export function StockPage({ onOpenAdd, onOpenScan }: { onOpenAdd: () => void; on
                       </td>
                       <td>
                         <div className="actions">
-                          <IconButton icon={<I.Flask size={16} />} label="เบิกใช้" onClick={() => setDispensing(x)} />
-                          <IconButton icon={<I.Print size={16} />} label="พิมพ์ป้าย" onClick={() => printLabels([x])} />
-                          <IconButton icon={<I.ArrowRight size={16} />} label="โอนย้าย" onClick={() => setTransfering(x)} />
-                          <IconButton icon={<I.Edit size={16} />} label="แก้ไข" onClick={() => setEditing(x)} />
-                          <IconButton
+                          <RowAction icon={<I.Flask size={16} />} label="เบิกใช้" onClick={() => setDispensing(x)} />
+                          <RowAction icon={<I.Print size={16} />} label="พิมพ์ป้าย" onClick={() => printLabels([x])} />
+                          <RowAction icon={<I.ArrowRight size={16} />} label="โอนย้าย" onClick={() => setTransfering(x)} />
+                          <RowAction icon={<I.Edit size={16} />} label="แก้ไข" onClick={() => setEditing(x)} />
+                          <RowAction
                             icon={<I.Trash size={16} />}
                             label="ลบ"
+                            danger
                             onClick={() =>
                               setConfirm({ ids: [x.id], desc: `ลบรายการ ${x.display_code} (${fluidName})?` })
                             }
