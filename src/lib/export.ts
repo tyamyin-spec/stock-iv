@@ -20,7 +20,7 @@ type BuildCtx = {
   wards: Ward[];
   fluids: FluidType[];
   prices: Price[];
-  from: string; // BE date "พ.ศ.-MM-DD"
+  from: string; // date "ค.ศ.-MM-DD"
   to: string;
   ward: string; // ward id or "all"
   expiryWarnDays?: number; // near-expiry window for r3 (default 210)
@@ -28,11 +28,11 @@ type BuildCtx = {
 
 // ── helpers ─────────────────────────────────────────────────────────────────
 
-const beToAd = (be: string): Date | null => {
-  const parts = be.split('-').map(Number);
+const beToAd = (iso: string): Date | null => {
+  const parts = iso.split('-').map(Number);
   if (parts.length !== 3 || parts.some(isNaN)) return null;
   const [y, m, d] = parts;
-  return new Date(y - 543, m - 1, d);
+  return new Date(y, m - 1, d);
 };
 
 const fluidName = (fluids: FluidType[], code: string): string =>

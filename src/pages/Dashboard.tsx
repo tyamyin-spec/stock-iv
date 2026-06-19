@@ -723,11 +723,11 @@ function UsageBarChart({ data }: { data: number[] }) {
           const v = data[hover];
           const diff = v - avg;
           const leftPct = ((pad.l + hover * barW + barW / 2) / w) * 100;
-          const beY = d.getFullYear() + 543;
+          const yr = d.getFullYear();
           return (
             <div className="chart-tip" style={{ left: `${leftPct}%` }}>
               <div className="chart-tip-date">
-                {d.getDate()} {months[d.getMonth()]} {beY}
+                {d.getDate()} {months[d.getMonth()]} {yr}
               </div>
               <div className="chart-tip-row">
                 <span className="dot" style={{ background: '#4F46E5' }}></span>

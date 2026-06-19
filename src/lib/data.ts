@@ -135,9 +135,9 @@ function makeDemoStock(): StockRow[] {
     const qty = 10 + Math.floor(rnd() * 141);
     const exp = new Date(today);
     exp.setDate(exp.getDate() + Math.floor(rnd() * 560) - 40);
-    const beY = exp.getFullYear() + 543;
-    const expiry = `${beY}-${String(exp.getMonth() + 1).padStart(2, '0')}-${String(exp.getDate()).padStart(2, '0')}`;
-    const lot = 'L' + (beY % 100) + (1 + Math.floor(rnd() * 9)) + String.fromCharCode(65 + Math.floor(rnd() * 26));
+    const adY = exp.getFullYear();
+    const expiry = `${adY}-${String(exp.getMonth() + 1).padStart(2, '0')}-${String(exp.getDate()).padStart(2, '0')}`;
+    const lot = 'L' + (adY % 100) + (1 + Math.floor(rnd() * 9)) + String.fromCharCode(65 + Math.floor(rnd() * 26));
     out.push({
       id: uuid(),
       display_code: 'S' + String(i + 1).padStart(3, '0'),
@@ -858,23 +858,23 @@ export const fmtNum = (n: number) => n.toLocaleString('en-US');
 export const fmtBaht = (n: number) => '฿' + Math.round(n).toLocaleString('en-US');
 export const fmtBaht2 = (n: number) =>
   '฿' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-export const daysFromToday = (be: string): number => {
-  const [y, m, d] = be.split('-').map(Number);
-  const ad = new Date(y - 543, m - 1, d);
+// Dates are stored and shown as ค.ศ. (Gregorian/AD), e.g. "2026-01-31".
+export const daysFromToday = (iso: string): number => {
+  const [y, m, d] = iso.split('-').map(Number);
+  const target = new Date(y, m - 1, d);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  return Math.round((ad.getTime() - today.getTime()) / 86400000);
+  return Math.round((target.getTime() - today.getTime()) / 86400000);
 };
-export const formatThaiDate = (be: string): string => {
-  const [y, m, d] = be.split('-').map(Number);
+export const formatThaiDate = (iso: string): string => {
+  const [y, m, d] = iso.split('-').map(Number);
   const months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
   return `${d} ${months[m - 1]} ${y}`;
 };
 
-// Convert a JS Date to a "พ.ศ.-MM-DD" string (Buddhist year).
+// Convert a JS Date to a "ค.ศ.-MM-DD" string.
 export const toBeDate = (jsDate: Date): string => {
-  const beY = jsDate.getFullYear() + 543;
-  return `${beY}-${String(jsDate.getMonth() + 1).padStart(2, '0')}-${String(jsDate.getDate()).padStart(2, '0')}`;
+  return `${jsDate.getFullYear()}-${String(jsDate.getMonth() + 1).padStart(2, '0')}-${String(jsDate.getDate()).padStart(2, '0')}`;
 };
 
 // ── static display metadata (not stored in DB) ────────────────────────────

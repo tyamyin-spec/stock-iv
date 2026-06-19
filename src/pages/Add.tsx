@@ -127,10 +127,10 @@ function ExpiryPicker({ value, onChange }: { value: string; onChange: (v: string
   const pad = (n: number | string) => String(n).padStart(2, '0');
   const emit = (nd: string, nm: string, ny: string) =>
     onChange(`${ny || ''}-${nm ? pad(nm) : ''}-${nd ? pad(nd) : ''}`);
-  const nDays = m ? new Date(y ? Number(y) - 543 : 2024, Number(m), 0).getDate() : 31;
-  const thisBE = new Date().getFullYear() + 543;
+  const nDays = m ? new Date(y ? Number(y) : 2024, Number(m), 0).getDate() : 31;
+  const thisYear = new Date().getFullYear();
   const years: number[] = [];
-  for (let i = -1; i <= 6; i++) years.push(thisBE + i);
+  for (let i = -1; i <= 6; i++) years.push(thisYear + i);
   return (
     <div className="picker-3">
       <Select value={d} onChange={(e) => emit(e.target.value, m, y)} aria-label="วันที่">
@@ -149,8 +149,8 @@ function ExpiryPicker({ value, onChange }: { value: string; onChange: (v: string
           </option>
         ))}
       </Select>
-      <Select value={y} onChange={(e) => emit(d, m, e.target.value)} aria-label="ปี พ.ศ.">
-        <option value="">ปี พ.ศ.</option>
+      <Select value={y} onChange={(e) => emit(d, m, e.target.value)} aria-label="ปี ค.ศ.">
+        <option value="">ปี ค.ศ.</option>
         {years.map((yy) => (
           <option key={yy} value={yy}>
             {yy}
@@ -161,9 +161,7 @@ function ExpiryPicker({ value, onChange }: { value: string; onChange: (v: string
   );
 }
 
-// Validate a "พ.ศ.-MM-DD" string. We store the BE form directly in `expiry`
-// (Postgres `date` happily accepts any valid YYYY-MM-DD); display helpers
-// assume BE input throughout the app.
+// Validate a "ค.ศ.-MM-DD" string stored directly in `expiry` (Postgres `date`).
 function isValidBeDate(be: string): boolean {
   const [y, m, d] = be.split('-').map(Number);
   return Boolean(y && m && d && m >= 1 && m <= 12 && d >= 1 && d <= 31);
@@ -510,7 +508,7 @@ export function AddPage({
                   </Field>
                 </div>
                 <div style={{ gridColumn: 'span 4' }}>
-                  <Field label="วันหมดอายุ (พ.ศ.)" required hint="เลือก วัน · เดือน · ปี พ.ศ.">
+                  <Field label="วันหมดอายุ (ค.ศ.)" required hint="เลือก วัน · เดือน · ปี ค.ศ.">
                     <ExpiryPicker value={form.exp} onChange={(v) => upd('exp', v)} />
                   </Field>
                 </div>

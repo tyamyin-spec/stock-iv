@@ -495,8 +495,8 @@ function EditStockModal({
             </Field>
           </div>
           <div style={{ gridColumn: 'span 6' }}>
-            <Field label="วันหมดอายุ (พ.ศ.)">
-              <Input value={form.expiry} onChange={(e) => u('expiry', e.target.value)} placeholder="2569-01-31" />
+            <Field label="วันหมดอายุ (ค.ศ.)">
+              <Input value={form.expiry} onChange={(e) => u('expiry', e.target.value)} placeholder="2026-01-31" />
             </Field>
           </div>
           <div style={{ gridColumn: 'span 4' }}>

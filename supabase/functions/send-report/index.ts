@@ -38,11 +38,11 @@ function isDue(freq: Frequency, now: Date): boolean {
   }
 }
 
-// ── BE date helpers (DB stores expiry as AD `date`; display in BE) ────────────
+// ── date helpers (expiry stored as ค.ศ./AD `date`) ────────────────────────────
 const months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
 function thaiDate(adIso: string): string {
   const d = new Date(adIso);
-  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear() + 543}`;
+  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
 }
 function daysFrom(adIso: string): number {
   const d = new Date(adIso);

@@ -29,8 +29,8 @@ export function ReportsPage() {
   const { prices } = usePrices();
   const { current: schedule, save: saveSchedule, remove: removeSchedule, sendTestNow } = useReportSchedule();
   const { expiryWarnDays } = useSettings();
-  const [from, setFrom] = useState('2567-05-01');
-  const [to, setTo] = useState('2567-05-21');
+  const [from, setFrom] = useState(new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10));
+  const [to, setTo] = useState(new Date().toISOString().slice(0, 10));
   const [ward, setWard] = useState('all');
   const [format, setFormat] = useState<ReportFormat>('xlsx');
 
