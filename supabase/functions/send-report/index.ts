@@ -222,7 +222,7 @@ Deno.serve(async (req) => {
         const recipients = s.recipients.split(',').map((x: string) => x.trim()).filter(Boolean);
         const html =
           `<p>เรียนผู้เกี่ยวข้อง,</p>` +
-          `<p>รายงาน <b>${esc(report.title)}</b> ประจำวันที่ ${esc(now.toLocaleDateString('th-TH'))}</p>` +
+          `<p>รายงาน <b>${report.title}</b> ประจำวันที่ ${now.toLocaleDateString('th-TH')}</p>` +
           `<p>จำนวน ${report.rows.length} รายการ (ดูไฟล์แนบ)</p>` +
           `<p style="color:#888;font-size:12px">ส่งอัตโนมัติจากระบบจัดการสารน้ำ (Stock IV)</p>`;
         await sendEmail(recipients, `[Stock IV] ${report.title} — ${now.toLocaleDateString('th-TH')}`, html, attachment);
