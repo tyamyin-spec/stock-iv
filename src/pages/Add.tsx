@@ -132,37 +132,31 @@ function ExpiryPicker({ value, onChange }: { value: string; onChange: (v: string
   const years: number[] = [];
   for (let i = -1; i <= 6; i++) years.push(thisBE + i);
   return (
-    <div className="grid-12" style={{ gap: 8 }}>
-      <div style={{ gridColumn: 'span 4' }}>
-        <Select value={d} onChange={(e) => emit(e.target.value, m, y)} aria-label="วันที่">
-          <option value="">วัน</option>
-          {Array.from({ length: nDays }, (_, i) => i + 1).map((dd) => (
-            <option key={dd} value={dd}>
-              {dd}
-            </option>
-          ))}
-        </Select>
-      </div>
-      <div style={{ gridColumn: 'span 4' }}>
-        <Select value={m} onChange={(e) => emit(d, e.target.value, y)} aria-label="เดือน">
-          <option value="">เดือน</option>
-          {THAI_MONTHS.map((mn, i) => (
-            <option key={i} value={i + 1}>
-              {mn}
-            </option>
-          ))}
-        </Select>
-      </div>
-      <div style={{ gridColumn: 'span 4' }}>
-        <Select value={y} onChange={(e) => emit(d, m, e.target.value)} aria-label="ปี พ.ศ.">
-          <option value="">ปี พ.ศ.</option>
-          {years.map((yy) => (
-            <option key={yy} value={yy}>
-              {yy}
-            </option>
-          ))}
-        </Select>
-      </div>
+    <div className="picker-3">
+      <Select value={d} onChange={(e) => emit(e.target.value, m, y)} aria-label="วันที่">
+        <option value="">วัน</option>
+        {Array.from({ length: nDays }, (_, i) => i + 1).map((dd) => (
+          <option key={dd} value={dd}>
+            {dd}
+          </option>
+        ))}
+      </Select>
+      <Select value={m} onChange={(e) => emit(d, e.target.value, y)} aria-label="เดือน">
+        <option value="">เดือน</option>
+        {THAI_MONTHS.map((mn, i) => (
+          <option key={i} value={i + 1}>
+            {mn}
+          </option>
+        ))}
+      </Select>
+      <Select value={y} onChange={(e) => emit(d, m, e.target.value)} aria-label="ปี พ.ศ.">
+        <option value="">ปี พ.ศ.</option>
+        {years.map((yy) => (
+          <option key={yy} value={yy}>
+            {yy}
+          </option>
+        ))}
+      </Select>
     </div>
   );
 }

@@ -1002,7 +1002,16 @@
 .mm-k { font-size: 10.5px; color: var(--text-3); }
 .mm-v { font-size: 18px; font-weight: 700; color: var(--text-1); }
 .mm-auto { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--success); font-weight: 600; }
+.picker-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+
 @media (max-width: 720px) {
-  .fluid-selected { flex-wrap: wrap; }
+  .fluid-selected { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .fluid-selected-mm { width: 100%; }
   .fluid-grid { grid-template-columns: 1fr 1fr; }
+}
+
+/* On phones, stack form grids so fields aren't squashed into tiny columns. */
+@media (max-width: 640px) {
+  .grid-12 { grid-template-columns: 1fr; gap: 12px; }
+  .grid-12 > * { grid-column: 1 / -1 !important; }
 }
