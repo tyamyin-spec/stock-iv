@@ -118,45 +118,87 @@ function FluidPicker({
   );
 }
 
+const MONTH_ABBR_TH = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+
+// Parse a month from a number, Thai, or English (full or abbreviated). 1–12 | null.
+function parseMonth(input: string): number | null {
+  const raw = input.trim();
+  if (!raw) return null;
+  const s = raw.toLowerCase().replace(/[.\s]/g, '');
+  if (/^\d{1,2}$/.test(s)) {
+    const n = Number(s);
+    return n >= 1 && n <= 12 ? n : null;
+  }
+  const TH = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  const THA = ['มค','กพ','มีค','เมย','พค','มิย','กค','สค','กย','ตค','พย','ธค'];
+  const EN = ['january','february','march','april','may','june','july','august','september','october','november','december'];
+  const ENA = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+  for (let i = 0; i < 12; i++) {
+    if (s === THA[i] || s === ENA[i] || s === TH[i] || s === EN[i]) return i + 1;
+    if (s.length >= 3 && EN[i].startsWith(s)) return i + 1;
+    if (raw.length >= 3 && TH[i].startsWith(raw)) return i + 1;
+  }
+  return null;
+}
+
 function ExpiryPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const THAI_MONTHS = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
-  const parts = (value || '').split('-');
-  const y = parts[0] || '';
-  const m = parts[1] ? String(Number(parts[1])) : '';
-  const d = parts[2] ? String(Number(parts[2])) : '';
+  const [dStr, setDStr] = useState('');
+  const [moStr, setMoStr] = useState('');
+  const [yStr, setYStr] = useState('');
+  const lastEmit = useRef<string | null>(null);
+
+  // Sync from an external value (e.g. scan prefill) — but not from our own emits.
+  useEffect(() => {
+    if (value === lastEmit.current) return;
+    const [yy, mm, dd] = (value || '').split('-');
+    setYStr(yy || '');
+    setMoStr(mm ? MONTH_ABBR_TH[Number(mm) - 1] ?? String(Number(mm)) : '');
+    setDStr(dd ? String(Number(dd)) : '');
+  }, [value]);
+
   const pad = (n: number | string) => String(n).padStart(2, '0');
-  const emit = (nd: string, nm: string, ny: string) =>
-    onChange(`${ny || ''}-${nm ? pad(nm) : ''}-${nd ? pad(nd) : ''}`);
-  const nDays = m ? new Date(y ? Number(y) : 2024, Number(m), 0).getDate() : 31;
-  const thisYear = new Date().getFullYear();
-  const years: number[] = [];
-  for (let i = -1; i <= 6; i++) years.push(thisYear + i);
+  const emit = (nd: string, nmo: string, ny: string) => {
+    const mNum = parseMonth(nmo);
+    const dNum = /^\d{1,2}$/.test(nd.trim()) ? Number(nd.trim()) : null;
+    const iso = `${ny.trim() || ''}-${mNum ? pad(mNum) : ''}-${dNum ? pad(dNum) : ''}`;
+    lastEmit.current = iso;
+    onChange(iso);
+  };
+
+  const monthOk = !moStr.trim() || parseMonth(moStr) !== null;
+
   return (
     <div className="picker-3">
-      <Select value={d} onChange={(e) => emit(e.target.value, m, y)} aria-label="วันที่">
-        <option value="">วัน</option>
-        {Array.from({ length: nDays }, (_, i) => i + 1).map((dd) => (
-          <option key={dd} value={dd}>
-            {dd}
-          </option>
-        ))}
-      </Select>
-      <Select value={m} onChange={(e) => emit(d, e.target.value, y)} aria-label="เดือน">
-        <option value="">เดือน</option>
-        {THAI_MONTHS.map((mn, i) => (
-          <option key={i} value={i + 1}>
-            {mn}
-          </option>
-        ))}
-      </Select>
-      <Select value={y} onChange={(e) => emit(d, m, e.target.value)} aria-label="ปี ค.ศ.">
-        <option value="">ปี ค.ศ.</option>
-        {years.map((yy) => (
-          <option key={yy} value={yy}>
-            {yy}
-          </option>
-        ))}
-      </Select>
+      <Input
+        value={dStr}
+        inputMode="numeric"
+        placeholder="วัน"
+        aria-label="วันที่"
+        onChange={(e) => {
+          setDStr(e.target.value);
+          emit(e.target.value, moStr, yStr);
+        }}
+      />
+      <Input
+        value={moStr}
+        placeholder="เดือน (ก.ค. / Jul / 7)"
+        aria-label="เดือน"
+        style={!monthOk ? { borderColor: 'var(--danger)' } : undefined}
+        onChange={(e) => {
+          setMoStr(e.target.value);
+          emit(dStr, e.target.value, yStr);
+        }}
+      />
+      <Input
+        value={yStr}
+        inputMode="numeric"
+        placeholder="ปี ค.ศ."
+        aria-label="ปี ค.ศ."
+        onChange={(e) => {
+          setYStr(e.target.value);
+          emit(dStr, moStr, e.target.value);
+        }}
+      />
     </div>
   );
 }
